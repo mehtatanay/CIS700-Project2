@@ -5,7 +5,7 @@ import java.awt.geom.Point2D;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Random;
+import java.util.LinkedList;
 import java.util.Set;
 
 import org.apache.log4j.Logger;
@@ -23,6 +23,7 @@ public class Group5PlayerRectangle extends mosquito.sim.Player  {
 	private HashSet<MoveableLight> greedyLights = new HashSet<MoveableLight> ();
 	private HashMap<MoveableLight, Point2D.Double> start = new HashMap<MoveableLight, Point2D.Double> ();
 	private HashMap<MoveableLight, Point2D.Double> moving = new HashMap<MoveableLight, Point2D.Double> ();
+	private HashMap<Point2D.Double, Integer> mosquitos = new HashMap<Point2D.Double, Integer> ();
 	
 	@Override
 	public String getName() {
@@ -32,15 +33,6 @@ public class Group5PlayerRectangle extends mosquito.sim.Player  {
 	private Set<Light> lights;
 	private Set<Line2D> walls;
 	
-	/*
-	 * This is called when a new game starts. It is passed the set
-	 * of lines that comprise the different walls, as well as the 
-	 * maximum number of lights you are allowed to use.
-	 * 
-	 * The return value is a set of lines that you would like to have drawn on the screen.
-	 * These lines don't actually affect gameplay, they're just there so you can have some
-	 * visual clue as to what's happening in the simulation.
-	 */
 	@Override
 	public ArrayList<Line2D> startNewGame(Set<Line2D> walls, int numLights) {
 		this.numLights = numLights;
@@ -53,15 +45,7 @@ public class Group5PlayerRectangle extends mosquito.sim.Player  {
 	}
 
 
-	/*
-	 * This is used to determine the initial placement of the lights.
-	 * It is called after startNewGame.
-	 * The board tells you where the mosquitoes are: board[x][y] tells you the
-	 * number of mosquitoes at coordinate (x, y)
-	 */
 	public Set<Light> getLights(int[][] board) {
-		// Initially place the lights randomly, and put the collector next to the last light
-
 		lights = new HashSet<Light>();
 		for(int i = 0; i<numLights;i++)
 		{
@@ -86,7 +70,6 @@ public class Group5PlayerRectangle extends mosquito.sim.Player  {
 	public Set<Light> updateLights(int[][] board) {
 		for (Light l : lights) {
 			MoveableLight ml = (MoveableLight)l;
-			boolean moved = false;
 			
 			if(moving.containsKey(ml)) {
 				Point2D.Double destination = moving.get(ml);
@@ -102,10 +85,8 @@ public class Group5PlayerRectangle extends mosquito.sim.Player  {
 				}
 				else if(Math.floor(destination.getX()) > Math.floor(ml.getX())) {
 					ml.moveRight();
-					moved = true;
 				} else if(Math.floor(destination.getX()) < Math.floor(ml.getX())) {
 					ml.moveLeft();
-					moved = true;
 				} 
 				
 			} else if(!greedyLights.contains(ml)){
@@ -127,14 +108,19 @@ public class Group5PlayerRectangle extends mosquito.sim.Player  {
 					}
 				}
 			}
+			
+			if(greedyLights.contains(ml)) {
+				for(int i = 0; i < 100; i++) {
+					for(int j = 0; j < 100; j++) {
+						mosquitos.put(new Point2D.Double(i,j), board[i][j]);
+					}
+				}
+				
+			}
 		}
 		return lights;
 	}
 
-	/*
-	 * Currently this is only called once (after getLights), so you cannot
-	 * move the Collector.
-	 */
 	@Override
 	public Collector getCollector() {
 		// this one just places a collector next to the last light that was added
