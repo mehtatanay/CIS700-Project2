@@ -4,7 +4,7 @@
 <properties>
 	<comment>A sample configuration file.</comment>
 	
-<entry key="mosquito.classes">mosquito.g0.RandomPlayer</entry>
+<entry key="mosquito.classes">mosquito.g0.Group5PlayerRectangle</entry>
 
   <!--	<entry key ="mosquito.seed">102223023</entry>-->
 	
