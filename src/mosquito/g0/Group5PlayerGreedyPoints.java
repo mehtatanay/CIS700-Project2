@@ -113,11 +113,20 @@ public class Group5PlayerGreedyPoints extends mosquito.sim.Player  {
 				if(greedyLights.get(ml) == null){
 					Point2D.Double location = new Point2D.Double(50,50);
 					int max = 0;
-					for(int i = 0; i < 100; i++) {
-						for(int j = 0; j < 100; j++) {
-							if(board[i][j] > max){
-								max = board[i][j];
-								location = new Point2D.Double(i,j);
+					for(int i = 0; i < 100; i+=10) {
+						for(int j = 0; j < 100; j+=10) {
+							//reset the sum for this chunk
+							int sum = 0;
+							for(int x = 0; x<10; x++){
+								for(int y=0; y<10; y++)
+								{
+									sum += board[i+x][j+y];
+								}
+							}
+							
+							if(sum > max){
+								max = sum;
+								location = new Point2D.Double(i+5,j+5);
 							}
 						}
 					}
