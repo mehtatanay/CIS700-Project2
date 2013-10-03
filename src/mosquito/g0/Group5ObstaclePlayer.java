@@ -4,6 +4,7 @@ import java.awt.geom.Line2D;
 import java.awt.geom.Point2D;
 import java.awt.geom.Point2D.Double;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -25,6 +26,8 @@ public class Group5ObstaclePlayer extends mosquito.sim.Player  {
 	private HashMap<MoveableLight, Point2D.Double> start = new HashMap<MoveableLight, Point2D.Double> ();
 	private HashMap<MoveableLight, Point2D.Double> moving = new HashMap<MoveableLight, Point2D.Double> ();
 	private HashMap<Point2D.Double, Integer> mosquitos = new HashMap<Point2D.Double, Integer> ();
+	private HashSet<Point2D.Double> takenSpaces = new HashSet<Point2D.Double> ();
+	private LinkedList<Integer> topTen = new LinkedList<Integer> ();
 	
 	@Override
 	public String getName() {
@@ -48,9 +51,27 @@ public class Group5ObstaclePlayer extends mosquito.sim.Player  {
 
 	public Set<Light> getLights(int[][] board) {
 		lights = new HashSet<Light>();
+		
+		for(int i = 0; i < 100; i++) {
+			for(int j = 0; j < 100; j++){
+				mosquitos.put(new Point2D.Double(i, j), board[i][j]);
+			}
+		}
+		LinkedList<Integer> vals = new LinkedList<Integer> (mosquitos.values());
+		Collections.sort(vals);
+
 		for(int i = 0; i<numLights;i++)
-		{
-			
+		{	
+			int lookingFor = vals.get(10000-i);
+			for(int k = 0; k < 100; k++) {
+				for(int j = 0; j < 100; j++){
+					if(board[k][j] == lookingFor)
+					{
+						MoveableLight l = new MoveableLight(k,j, true);
+						lights.add(l);
+					}
+				}
+			}
 		}
 		return lights;
 	}
