@@ -4,6 +4,7 @@ import java.awt.geom.Line2D;
 import java.awt.geom.Point2D;
 import java.awt.geom.Point2D.Double;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -48,27 +49,38 @@ public class Group5ObstaclePlayerGrid extends mosquito.sim.Player  {
 
 
 	public Set<Light> getLights(int[][] board) {
-		//me messing around with the lights
+		//try fancy algorithm, if anything fails go back to hardcoding
 		lights = new HashSet<Light>();
-		for(int i = 0; i<numLights;i++)
-		{
-			if(i==0){
-				MoveableLight l = new MoveableLight(0,0, true);
+		try {	
+			for(int i = 0; i < 100; i++) {
+				for(int j = 0; j < 100; j++){
+					mosquitos.put(new Point2D.Double(i, j), board[i][j]);
+				}
+			}
+			LinkedList<Integer> vals = new LinkedList<Integer> (mosquitos.values());
+			Collections.sort(vals);
+
+			for(int i = 0; i<numLights;i++)
+			{	
+				int lookingFor = vals.get(10000-i);
+				for(int k = 0; k < 100; k++) {
+					for(int j = 0; j < 100; j++){
+						if(board[k][j] == lookingFor)
+						{
+							MoveableLight l = new MoveableLight(k,j, true);
+							lights.add(l);
+						}
+						if(lights.size() == numLights) { break; }
+					}
+				}
+			}
+		}catch (Exception e) {
+			lights = new HashSet<Light> ();
+			for(int i = 0; i<numLights;i++)
+			{
+				MoveableLight l = new MoveableLight(0,(100*i/numLights), true);
 				lights.add(l);
 			}
-			if(i==1){
-				MoveableLight l = new MoveableLight(0,33, true);
-				lights.add(l);
-			}
-			if(i==2){
-				MoveableLight l = new MoveableLight(0,66, true);
-				lights.add(l);
-			}
-			if(i==3){
-				MoveableLight l = new MoveableLight(0,100, true);
-				lights.add(l);
-			}
-			
 		}
 		return lights;
 	}
