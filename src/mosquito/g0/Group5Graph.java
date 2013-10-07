@@ -23,12 +23,12 @@ public class Group5Graph extends mosquito.sim.Player  {
 	private Point2D.Double lastLight;
 	private static final double LIGHTRADIUS = 10.0;
 	private static final double BOARDSIZE = 100.0;
-	private Logger log = Logger.getLogger(this.getClass()); // for logging
 	private Point2D collectorLocation;
 	private MoveableLight collectorLight;
 	private HashSet<Point2D.Double> vertices = new HashSet<Point2D.Double> ();
 	private HashMap<Point2D.Double, Point2D.Double> edges = new HashMap<Point2D.Double, Point2D.Double> ();
 	private HashMap<Point2D.Double, Point2D.Double> mst = new HashMap<Point2D.Double, Point2D.Double> ();
+	private HashMap<MoveableLight, Point2D.Double> moving = new HashMap<MoveableLight, Point2D.Double> ();
 	
 	@Override
 	public String getName() {
@@ -76,7 +76,7 @@ public class Group5Graph extends mosquito.sim.Player  {
 		}
 		
 		HashSet<Point2D.Double> seen = new HashSet<Point2D.Double> ();
-		//compute mst		
+		//compute mst using Prim's
 		while(seen.size() != vertices.size()) {
 			for(Point2D.Double p:vertices) {
 				if(seen.size() == 0) {seen.add(p);}
@@ -100,14 +100,25 @@ public class Group5Graph extends mosquito.sim.Player  {
 	public Set<Light> updateLights(int[][] board) {
 		//for each light
 		for (Light l : lights) {
+			
 			//standard setup
 			MoveableLight ml = (MoveableLight)l;
-			
+
 			// don't move collector light
 			if (ml.equals(collectorLight)) {
 				continue;
 			}
 			
+			if(!moving.containsKey(l)) {
+				//based on split of board, add next destination
+			}else {
+				//continue moving towards destination
+				if(!moveTowards(ml, moving.get(l))) {
+					moving.remove(l);
+				}
+				
+			}
+	
 			Point2D.Double p = (Point2D.Double)ml.getLocation();
 			
 			if (p.distance(collectorLocation) > 3 * LIGHTRADIUS && ml.isOn() == false) {
@@ -124,5 +135,25 @@ public class Group5Graph extends mosquito.sim.Player  {
 		Collector c = new Collector(collectorLocation.getX(), collectorLocation.getY());
 		return c;
 	}
-
+	
+	public boolean moveTowards(MoveableLight l, Point2D.Double dest) {
+		if(l.getLocation().distanceSq(dest) < 1) {
+			l.moveTo(dest.getX(), dest.getY());
+		} else if(dest.getX() < l.getX()) {
+			l.moveLeft();
+			return true;
+		} else if(dest.getX() > l.getX()) {
+			l.moveRight();
+			return true;
+		} else if(dest.getY() > l.getY()) {
+			l.moveUp();
+			return true;
+		} else if(dest.getY() < l.getY()) {
+			l.moveDown();
+			return true;
+		}
+		return false;
+	}
 }
+
+
