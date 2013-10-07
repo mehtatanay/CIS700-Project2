@@ -251,9 +251,9 @@ public class Group5ObstaclePlayerGrid extends mosquito.sim.Player  {
 				}
 			}
 		} catch(Exception e) {
-			for(int i = 0; i < numLights; i ++) {
-				lights = new HashSet<Light>();
-				Light l = new MoveableLight(0, (100*i)/numLights, true);
+			lights = new HashSet<Light>();
+			for(int i = 0; i < numLights-1; i ++) {
+				Light l = new MoveableLight(0, (100*i)/(numLights-1), true);
 				lights.add(l);
 			}
 		}
