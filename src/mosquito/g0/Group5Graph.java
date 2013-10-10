@@ -26,16 +26,20 @@ public class Group5Graph extends mosquito.sim.Player  {
 	private Point2D.Double lastLight;
 	private static final double LIGHTRADIUS = 10.0;
 	private static final double BOARDSIZE = 100.0;
-	private Logger log = Logger.getLogger(this.getClass()); // for logging
 	private Point2D collectorLocation;
 	private MoveableLight collectorLight;
 	private ArrayList<Point2D.Double> vertices = new ArrayList<Point2D.Double> ();
 	private HashMap<Point2D.Double, ArrayList<Point2D.Double>> graph = new HashMap<Point2D.Double, ArrayList<Point2D.Double>>();
 	private HashMap<Point2D.Double, Point2D.Double> edges = new HashMap<Point2D.Double, Point2D.Double> ();
+<<<<<<< HEAD
 	private HashMap<Point2D.Double, ArrayList<Point2D.Double>> mst = new HashMap<Point2D.Double, ArrayList<Point2D.Double>> ();
 	private HashMap<Light, ArrayList<Point2D>> paths = new HashMap<Light, ArrayList<Point2D>>();
 	private HashMap<Light, ArrayList<Point2D.Double>> astarPaths = new HashMap<Light, ArrayList<Point2D.Double>>();
 	private AStar astar;
+=======
+	private HashMap<Point2D.Double, Point2D.Double> mst = new HashMap<Point2D.Double, Point2D.Double> ();
+	private HashMap<MoveableLight, Point2D.Double> moving = new HashMap<MoveableLight, Point2D.Double> ();
+>>>>>>> c890a43a9a4b53a4734d4cfdbe89a294d3f42867
 	
 	@Override
 	public String getName() {
@@ -318,6 +322,7 @@ public class Group5Graph extends mosquito.sim.Player  {
 			}
 		}
 		
+<<<<<<< HEAD
 		return freepoint;
 	}
 	
@@ -343,6 +348,10 @@ public class Group5Graph extends mosquito.sim.Player  {
 	private void computeMST() {
 		HashSet<Point2D.Double> seen = new HashSet<Point2D.Double>();
 		//compute mst		
+=======
+		HashSet<Point2D.Double> seen = new HashSet<Point2D.Double> ();
+		//compute mst using Prim's
+>>>>>>> c890a43a9a4b53a4734d4cfdbe89a294d3f42867
 		while(seen.size() != vertices.size()) {
 			for(Point2D.Double p:vertices) {
 				ArrayList<Point2D.Double> adjacent = graph.get(p);
@@ -439,14 +448,16 @@ public class Group5Graph extends mosquito.sim.Player  {
 	public Set<Light> updateLights(int[][] board) {		
 		//for each light
 		for (Light l : lights) {
+			
 			//standard setup
 			MoveableLight ml = (MoveableLight)l;
-			
+
 			// don't move collector light
 			if (ml.equals(collectorLight)) {
 				continue;
 			}
 			
+<<<<<<< HEAD
 			else if (ml.getLocation().equals(collectorLocation)) {
 				ml.turnOff();
 				continue;
@@ -456,6 +467,19 @@ public class Group5Graph extends mosquito.sim.Player  {
 			ArrayList<Point2D> path = paths.get(l);
 			Point2D.Double dest = (path.size() > 0) ? (Point2D.Double)path.get(0) : 
 								  (Point2D.Double)collectorLocation;
+=======
+			if(!moving.containsKey(l)) {
+				//based on split of board, add next destination
+			}else {
+				//continue moving towards destination
+				if(!moveTowards(ml, moving.get(l))) {
+					moving.remove(l);
+				}
+				
+			}
+	
+			Point2D.Double p = (Point2D.Double)ml.getLocation();
+>>>>>>> c890a43a9a4b53a4734d4cfdbe89a294d3f42867
 			
 			if (stuck(ml, p)) {
 //				Random random = new Random();
@@ -560,5 +584,25 @@ public class Group5Graph extends mosquito.sim.Player  {
 		Collector c = new Collector(collectorLocation.getX(), collectorLocation.getY());
 		return c;
 	}
-
+	
+	public boolean moveTowards(MoveableLight l, Point2D.Double dest) {
+		if(l.getLocation().distanceSq(dest) < 1) {
+			l.moveTo(dest.getX(), dest.getY());
+		} else if(dest.getX() < l.getX()) {
+			l.moveLeft();
+			return true;
+		} else if(dest.getX() > l.getX()) {
+			l.moveRight();
+			return true;
+		} else if(dest.getY() > l.getY()) {
+			l.moveUp();
+			return true;
+		} else if(dest.getY() < l.getY()) {
+			l.moveDown();
+			return true;
+		}
+		return false;
+	}
 }
+
+
