@@ -36,6 +36,7 @@ public class Group5Graph extends mosquito.sim.Player  {
 	private HashMap<Light, ArrayList<Point2D.Double>> astarPaths = new HashMap<Light, ArrayList<Point2D.Double>>();
 	private HashMap<MoveableLight, Point2D.Double> greedyLights = new HashMap<MoveableLight, Point2D.Double> ();
 	
+	private Logger logger =  Logger.getLogger(this.getClass()); 
 	private AStar astar;
 
 	
@@ -49,6 +50,7 @@ public class Group5Graph extends mosquito.sim.Player  {
 		
 	@Override
 	public ArrayList<Line2D> startNewGame(Set<Line2D> walls, int numLights) {
+		logger.trace("logging works");
 		this.numLights = numLights;
 		this.walls = new HashSet<Line2D>();
 		
@@ -463,13 +465,41 @@ public class Group5Graph extends mosquito.sim.Player  {
 	
 	boolean isObstructed(Point2D.Double startPoint, Point2D.Double endPoint) {
 		Iterator<Line2D> wallIterator = walls.iterator();
+		ArrayList<Line2D.Double> testLines = new ArrayList<Line2D.Double>();
+		Point2D.Double leftStart = new Point2D.Double(Math.max(0, startPoint.getX() - 1), startPoint.getY());
+		Point2D.Double leftEnd =  new Point2D.Double(Math.max(0, endPoint.getX() - 1), endPoint.getY());
+		
+		Line2D.Double left = new Line2D.Double(leftStart, leftEnd);
+		testLines.add(left);
+		
+		Point2D.Double rightStart = new Point2D.Double(Math.min(BOARDSIZE, startPoint.getX() + 1), startPoint.getY());
+		Point2D.Double rightEnd = new Point2D.Double(Math.min(BOARDSIZE, endPoint.getX() + 1), endPoint.getY());
+		
+		Line2D.Double right = new Line2D.Double(rightStart, rightEnd);
+		testLines.add(right);
+		
+		Point2D.Double aboveStart = new Point2D.Double(startPoint.getX(), Math.max(0, startPoint.getY() - 1));
+		Point2D.Double aboveEnd = new Point2D.Double(endPoint.getX(), Math.max(0, endPoint.getY() - 1));
+		Line2D.Double above = new Line2D.Double(aboveStart, aboveEnd);
+		testLines.add(above);
+		
+		
+		Point2D.Double belowStart =  new Point2D.Double(startPoint.getX(), Math.min(BOARDSIZE, startPoint.getY() + 1));
+		Point2D.Double belowEnd =  new Point2D.Double(endPoint.getX(), Math.min(BOARDSIZE, endPoint.getY() + 1));
+		Line2D.Double below = new Line2D.Double(belowStart,belowEnd);
+		testLines.add(below);
+		
+		
 		Line2D.Double testLine = new Line2D.Double(startPoint, endPoint);
+		testLines.add(testLine);
+		
 		boolean intersects = false;
 		while (wallIterator.hasNext()) {
 			Line2D.Double wall = (Line2D.Double)wallIterator.next();
-			if (lineIntersect(testLine, wall) != null) {
-				intersects = true;
-				break;
+			for (Line2D test : testLines) {
+				if (lineIntersect(test, wall) != null) {
+					return true;
+				}
 			}
 		}
 		
@@ -591,7 +621,7 @@ public class Group5Graph extends mosquito.sim.Player  {
 						astarPaths.put(ml, astarPath);
 					}
 					catch (Exception e) {
-						
+						logger.trace("caught exception 1");
 					}
 				}
 				
@@ -624,7 +654,7 @@ public class Group5Graph extends mosquito.sim.Player  {
 					astarPaths.put(ml, astarPath);
 				}
 				catch (Exception e) {
-					
+					logger.trace("caught exception 2");
 				}
 			}
 			
@@ -638,6 +668,17 @@ public class Group5Graph extends mosquito.sim.Player  {
 
 	private boolean moveTowards(MoveableLight l, Point2D.Double dest) {
 		Point2D.Double current = (Point2D.Double) l.getLocation();
+		// move away from away from a wall if we're close
+		for(Line2D w:walls) {
+			if(w.getP1().distance(current) < 2) {
+				dest = new Point2D.Double(-w.getP1().getX(), -w.getP1().getY());
+			}
+			
+			else if (w.getP2().distance(current) < 2) {
+				dest = new Point2D.Double(-w.getP2().getX(), -w.getP2().getY());
+			}
+		}
+		
 		boolean moved = false;
 		double xdiff = current.getX() - dest.getX();
 		double ydiff = current.getY() - dest.getY();
