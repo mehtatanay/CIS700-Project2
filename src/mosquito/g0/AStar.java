@@ -1,4 +1,4 @@
-package src.mosquito.g0;
+package mosquito.g0;
 
 import java.awt.geom.Line2D;
 import java.awt.geom.Point2D;
@@ -60,6 +60,13 @@ public class AStar {
 			for (Point2D.Double neighbor : getNeighbors(current)){
 				float tentative_g_score = g_score.get(current) + (float)distanceBetween(current, neighbor, board);
 				float tentative_f_score = tentative_g_score + (float)absoluteDistanceBetween(neighbor, destination);
+				
+				//HACK TO NOT GO AROUND CORNERS
+				for(Line2D w:walls) {
+					if(w.getP1().distance(neighbor) < 2 || w.getP2().distance(neighbor) < 2) {
+						tentative_f_score = -1000;
+					}
+				}
 				
 				if(visited.contains(neighbor) && tentative_f_score > f_score.get(neighbor))
 					continue;
