@@ -31,15 +31,13 @@ public class Group5Graph extends mosquito.sim.Player  {
 	private ArrayList<Point2D.Double> vertices = new ArrayList<Point2D.Double> ();
 	private HashMap<Point2D.Double, ArrayList<Point2D.Double>> graph = new HashMap<Point2D.Double, ArrayList<Point2D.Double>>();
 	private HashMap<Point2D.Double, Point2D.Double> edges = new HashMap<Point2D.Double, Point2D.Double> ();
-<<<<<<< HEAD
 	private HashMap<Point2D.Double, ArrayList<Point2D.Double>> mst = new HashMap<Point2D.Double, ArrayList<Point2D.Double>> ();
 	private HashMap<Light, ArrayList<Point2D>> paths = new HashMap<Light, ArrayList<Point2D>>();
 	private HashMap<Light, ArrayList<Point2D.Double>> astarPaths = new HashMap<Light, ArrayList<Point2D.Double>>();
+	private HashMap<MoveableLight, Point2D.Double> greedyLights = new HashMap<MoveableLight, Point2D.Double> ();
+	
 	private AStar astar;
-=======
-	private HashMap<Point2D.Double, Point2D.Double> mst = new HashMap<Point2D.Double, Point2D.Double> ();
-	private HashMap<MoveableLight, Point2D.Double> moving = new HashMap<MoveableLight, Point2D.Double> ();
->>>>>>> c890a43a9a4b53a4734d4cfdbe89a294d3f42867
+
 	
 	@Override
 	public String getName() {
@@ -54,11 +52,11 @@ public class Group5Graph extends mosquito.sim.Player  {
 		this.numLights = numLights;
 		this.walls = new HashSet<Line2D>();
 		
-		for (Line2D w: walls) {
-			ArrayList<Line2D> extended = extend(w);
-			this.walls.addAll(extended);
-		}
-//		this.walls = walls;
+//		for (Line2D w: walls) {
+//			ArrayList<Line2D> extended = extend(w);
+//			this.walls.addAll(extended);
+//		}
+		this.walls = walls;
 		
 		this.collectorLocation = new Point2D.Double(95,95);
 		this.astar = new AStar(this.walls);
@@ -68,6 +66,74 @@ public class Group5Graph extends mosquito.sim.Player  {
 		lines.add(line);
 		return lines;
 	}
+	
+	
+	private static boolean withinLightRadius(Point2D startPoint, Point2D testPoint) {
+		return (startPoint.distance(testPoint)) <= (2 * LIGHTRADIUS);
+	}
+	
+	private boolean isValidDestination(Point2D point) {
+	boolean valid = true;	
+	// check all current light positions and current light locations as valid
+	
+	for (Light l: lights) {
+		MoveableLight ml = (MoveableLight)l;
+		Point2D currentLocation = ml.getLocation();
+		if (withinLightRadius(currentLocation, point)) {
+	        valid = false; 
+			break;
+		}
+		
+		if (greedyLights.containsKey(ml)) {
+			Point2D currentDestination = greedyLights.get(ml);
+			if (withinLightRadius(currentDestination, point)) {
+				valid = false;
+				break;
+			   }
+		    }
+		}
+
+	
+		return valid;
+	}
+	
+	private Point2D greedyLocation(int [][] board) {
+		Point2D.Double location = new Point2D.Double(50,50);
+		Point2D.Double validLocation = null;
+		int max = 0;
+		int validmax = 0;
+		
+		for(int i = 0; i < 100; i+=10) {
+			for(int j = 0; j < 100; j+=10) {
+				//reset the sum for this chunk
+				int sum = 0;
+				for (int x = 0; x < 10; x++){
+					for(int y= 0; y < 10; y++)
+					{
+						sum += board[i+x][j+y];
+					}
+				}
+				
+				if(sum > max) {
+					location = new Point2D.Double(i + 5, j + 5);
+					max = sum;
+				}
+				
+				if (sum > validmax && isValidDestination(location)) {
+					validLocation = new Point2D.Double(i+5,j+5);
+					validmax = sum;
+				}
+			}
+		}
+		
+		// if we haven't found a valid location, pick the max populated location
+		if (validLocation == null) {
+			validLocation = location;
+		}
+		
+		return notOnWall(validLocation);
+	}
+	
 	
 	private ArrayList<Line2D> extend (Line2D startLine) {
 		ArrayList<Line2D> extended = new ArrayList<Line2D>();
@@ -321,8 +387,6 @@ public class Group5Graph extends mosquito.sim.Player  {
 				}
 			}
 		}
-		
-<<<<<<< HEAD
 		return freepoint;
 	}
 	
@@ -348,10 +412,6 @@ public class Group5Graph extends mosquito.sim.Player  {
 	private void computeMST() {
 		HashSet<Point2D.Double> seen = new HashSet<Point2D.Double>();
 		//compute mst		
-=======
-		HashSet<Point2D.Double> seen = new HashSet<Point2D.Double> ();
-		//compute mst using Prim's
->>>>>>> c890a43a9a4b53a4734d4cfdbe89a294d3f42867
 		while(seen.size() != vertices.size()) {
 			for(Point2D.Double p:vertices) {
 				ArrayList<Point2D.Double> adjacent = graph.get(p);
@@ -416,6 +476,31 @@ public class Group5Graph extends mosquito.sim.Player  {
 		return intersects;
 	}
 	
+	private boolean captured(Point2D.Double p) {
+		boolean withinLightRad = false;
+		for (Light l : lights) {
+			Point2D.Double lightLocation = (Point2D.Double)l.getLocation();
+			if (withinLightRadius(lightLocation, p) && isObstructed(lightLocation, p) == false) {
+				withinLightRad = true;
+				break;
+			}
+		}
+		
+		return withinLightRad;
+	}
+	
+	private boolean allMosquitosCaptured(int[][] board) {
+		for (int i = 0; i < board.length; i ++) {
+			for (int j = 0; j < board[0].length; j ++) {
+				if (!captured(new Point2D.Double(i, j)) && board[i][j] > 0) {
+						return false;
+				}
+			}
+		}
+		
+		return true;
+	}
+	
 	public Set<Light> getLights(int[][] board) {
 		lights = new HashSet<Light>();
 		buildGraph();	
@@ -451,41 +536,44 @@ public class Group5Graph extends mosquito.sim.Player  {
 			
 			//standard setup
 			MoveableLight ml = (MoveableLight)l;
+			Point2D.Double dest = null;
 
 			// don't move collector light
 			if (ml.equals(collectorLight)) {
 				continue;
 			}
 			
-<<<<<<< HEAD
+			else if (allMosquitosCaptured(board)) {
+				dest = (Point2D.Double) collectorLocation;
+			}
+			
+			// check if this is a greedy light
+			else if (greedyLights.containsKey(ml)) {
+				Point2D currLocation = ml.getLocation();
+				Point2D destination = greedyLights.get(ml);
+				
+				// pick a new greedy location or the collector if we've reached our previous destination
+				if (currLocation.equals(destination)) {
+					Point2D newDestination = collectorLocation;
+					greedyLights.put(ml, (Point2D.Double)newDestination);
+				}	
+				
+				dest = greedyLights.get(ml);
+			}
+			
+			// add lights that have finished their path to the greedy lights
 			else if (ml.getLocation().equals(collectorLocation)) {
-				ml.turnOff();
-				continue;
+				Point2D greedyLocation = greedyLocation(board);
+				greedyLights.put(ml, (Point2D.Double)greedyLocation);
 			}
 			
 			Point2D.Double p = (Point2D.Double)ml.getLocation();			
 			ArrayList<Point2D> path = paths.get(l);
-			Point2D.Double dest = (path.size() > 0) ? (Point2D.Double)path.get(0) : 
-								  (Point2D.Double)collectorLocation;
-=======
-			if(!moving.containsKey(l)) {
-				//based on split of board, add next destination
-			}else {
-				//continue moving towards destination
-				if(!moveTowards(ml, moving.get(l))) {
-					moving.remove(l);
-				}
-				
-			}
-	
-			Point2D.Double p = (Point2D.Double)ml.getLocation();
->>>>>>> c890a43a9a4b53a4734d4cfdbe89a294d3f42867
 			
-			if (stuck(ml, p)) {
-//				Random random = new Random();
-//				Point2D.Double newdest= new Point2D.Double((double)random.nextInt((int)BOARDSIZE), (double)random.nextInt((int)BOARDSIZE));
-//				dest = newdest;
-				dest = (Point2D.Double)collectorLocation;
+			// if this light isn't greedy, send it along its path
+			if (dest == null) {
+				dest = (path.size() > 0) ? (Point2D.Double)path.get(0) : 
+								  (Point2D.Double)collectorLocation;
 			}
 			
 			// if we're at the destination, get the next destination point
@@ -585,24 +673,6 @@ public class Group5Graph extends mosquito.sim.Player  {
 		return c;
 	}
 	
-	public boolean moveTowards(MoveableLight l, Point2D.Double dest) {
-		if(l.getLocation().distanceSq(dest) < 1) {
-			l.moveTo(dest.getX(), dest.getY());
-		} else if(dest.getX() < l.getX()) {
-			l.moveLeft();
-			return true;
-		} else if(dest.getX() > l.getX()) {
-			l.moveRight();
-			return true;
-		} else if(dest.getY() > l.getY()) {
-			l.moveUp();
-			return true;
-		} else if(dest.getY() < l.getY()) {
-			l.moveDown();
-			return true;
-		}
-		return false;
-	}
 }
 
 
