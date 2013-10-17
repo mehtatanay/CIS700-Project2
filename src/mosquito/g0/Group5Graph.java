@@ -71,7 +71,8 @@ public class Group5Graph extends mosquito.sim.Player  {
 	
 	
 	private static boolean withinLightRadius(Point2D startPoint, Point2D testPoint) {
-		return (startPoint.distance(testPoint)) <= (2 * LIGHTRADIUS);
+		return (startPoint.distance(testPoint)) <= (LIGHTRADIUS);
+	
 	}
 	
 	private boolean isValidDestination(Point2D point) {
@@ -575,6 +576,10 @@ public class Group5Graph extends mosquito.sim.Player  {
 			
 			else if (allMosquitosCaptured(board)) {
 				dest = (Point2D.Double) collectorLocation;
+			}
+			
+			else if(stuck(ml,(Point2D.Double) ml.getLocation())) {
+				greedyLights.put(ml, (Point2D.Double) collectorLocation);
 			}
 			
 			// check if this is a greedy light
