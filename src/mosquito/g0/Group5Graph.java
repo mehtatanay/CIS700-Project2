@@ -74,7 +74,8 @@ public class Group5Graph extends mosquito.sim.Player  {
 	
 	
 	private static boolean withinLightRadius(Point2D startPoint, Point2D testPoint) {
-		return (startPoint.distance(testPoint)) <= (2 * LIGHTRADIUS);
+		return (startPoint.distance(testPoint)) <= (LIGHTRADIUS);
+	
 	}
 	
 	private boolean isValidDestination(Point2D point) {
