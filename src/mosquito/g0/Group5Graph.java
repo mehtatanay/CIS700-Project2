@@ -35,6 +35,7 @@ public class Group5Graph extends mosquito.sim.Player  {
 	private HashMap<Light, ArrayList<Point2D>> paths = new HashMap<Light, ArrayList<Point2D>>();
 	private HashMap<Light, ArrayList<Point2D.Double>> astarPaths = new HashMap<Light, ArrayList<Point2D.Double>>();
 	private HashMap<MoveableLight, Point2D.Double> greedyLights = new HashMap<MoveableLight, Point2D.Double> ();
+	ArrayList<Point2D> zigZagPath;
 	
 	private Logger logger =  Logger.getLogger(this.getClass()); 
 	private AStar astar;
@@ -84,9 +85,8 @@ public class Group5Graph extends mosquito.sim.Player  {
 	
 	for (Light l: lights) {
 		MoveableLight ml = (MoveableLight)l;
-		Point2D currentLocation = ml.getLocation();
-		if (withinLightRadius(currentLocation, point)) {
-	        valid = false; 
+		if (withinLightRadius(point, ml.getLocation())) {
+			valid = false;
 			break;
 		}
 		
@@ -116,7 +116,10 @@ public class Group5Graph extends mosquito.sim.Player  {
 				for (int x = 0; x < 10; x++){
 					for(int y= 0; y < 10; y++)
 					{
-						sum += board[i+x][j+y];
+						if (!isObstructed(new Point2D.Double(i + x, j + y), 
+								new Point2D.Double(i + 5, j+ 5))) {
+							sum += board[i+x][j+y];
+						}
 					}
 				}
 				
@@ -134,7 +137,7 @@ public class Group5Graph extends mosquito.sim.Player  {
 		
 		// if we haven't found a valid location, pick the max populated location
 		if (validLocation == null) {
-			validLocation = location;
+			validLocation = (Point2D.Double)collectorLocation;
 		}
 		
 		return notOnWall(validLocation);
@@ -322,17 +325,16 @@ public class Group5Graph extends mosquito.sim.Player  {
 	 *  computes a zig zag path throughout the board
 	 */
 	private void zigZagPaths() {
-		ArrayList<Point2D> zigzag = zigZagPath();
-		int pathSize = zigzag.size()/(numLights - 1);
+		int pathSize = zigZagPath.size()/(numLights - 1);
 		for (Light l: lights) {
 			int index = 0;
 			ArrayList<Point2D> nextPath = new ArrayList<Point2D>();
-			while(zigzag.get(index).equals(l.getLocation()) == false) {
+			while(zigZagPath.get(index).equals(l.getLocation()) == false) {
 				index++;
 			}
 			
 			for (int i = 0; i < pathSize; i++) {
-				nextPath.add(zigzag.get(index + i));
+				nextPath.add(zigZagPath.get(index + i));
 			}
 			
 			nextPath.add(collectorLocation);
@@ -534,78 +536,7 @@ public class Group5Graph extends mosquito.sim.Player  {
 		
 		return intersects;
 	}
-	
 
-	
-	
-//	boolean isObstructed(Point2D.Double startPoint, Point2D.Double endPoint) {
-//		Iterator<Line2D> wallIterator = walls.iterator();
-//		ArrayList<Line2D.Double> testLines = new ArrayList<Line2D.Double>();
-//		Point2D.Double leftStart = new Point2D.Double(Math.max(0, startPoint.getX() - 1), startPoint.getY());
-//		Point2D.Double leftEnd =  new Point2D.Double(Math.max(0, endPoint.getX() - 1), endPoint.getY());
-//		
-//		Line2D.Double left = new Line2D.Double(leftStart, leftEnd);
-//		
-//		leftStart = new Point2D.Double(Math.max(0, startPoint.getX() - 2), startPoint.getY());
-//		leftEnd =  new Point2D.Double(Math.max(0, endPoint.getX() - 2), endPoint.getY());
-//		
-//		Line2D.Double leftleft = new Line2D.Double(leftStart, leftEnd);
-//		testLines.add(left);
-//		testLines.add(leftleft);
-//		
-//		Point2D.Double rightStart = new Point2D.Double(Math.min(BOARDSIZE, startPoint.getX() + 1), startPoint.getY());
-//		Point2D.Double rightEnd = new Point2D.Double(Math.min(BOARDSIZE, endPoint.getX() + 1), endPoint.getY());
-//		
-//		Line2D.Double right = new Line2D.Double(rightStart, rightEnd);
-//		
-//		rightStart = new Point2D.Double(Math.min(BOARDSIZE, startPoint.getX() + 2), startPoint.getY());
-//		rightEnd =  new Point2D.Double(Math.min(BOARDSIZE, endPoint.getX() + 2), endPoint.getY());
-//		
-//		Line2D.Double rightright = new Line2D.Double(rightStart, rightEnd);
-//		testLines.add(rightright);
-//		
-//		Point2D.Double aboveStart = new Point2D.Double(startPoint.getX(), Math.max(0, startPoint.getY() - 1));
-//		Point2D.Double aboveEnd = new Point2D.Double(endPoint.getX(), Math.max(0, endPoint.getY() - 1));
-//		
-//		Line2D.Double above = new Line2D.Double(aboveStart, aboveEnd);
-//	    aboveStart = new Point2D.Double(startPoint.getX(), Math.max(0, startPoint.getY() - 2));
-//		aboveEnd = new Point2D.Double(endPoint.getX(), Math.max(0, endPoint.getY() - 2));
-//		
-//	    Line2D.Double aboveabove = new Line2D.Double(aboveStart, aboveEnd);
-//		testLines.add(above);
-//		testLines.add(aboveabove);
-//		
-//		
-//		Point2D.Double belowStart =  new Point2D.Double(startPoint.getX(), Math.min(BOARDSIZE, startPoint.getY() + 1));
-//		Point2D.Double belowEnd =  new Point2D.Double(endPoint.getX(), Math.min(BOARDSIZE, endPoint.getY() + 1));
-//		Line2D.Double below = new Line2D.Double(belowStart,belowEnd);
-//		
-//		
-//		testLines.add(below);
-//		
-//
-//	    belowStart =  new Point2D.Double(startPoint.getX(), Math.min(BOARDSIZE, startPoint.getY() + 2));
-//		belowEnd =  new Point2D.Double(endPoint.getX(), Math.min(BOARDSIZE, endPoint.getY() + 2));
-//		
-//		Line2D.Double belowbelow = new Line2D.Double(belowStart, belowEnd);
-//		testLines.add(belowbelow);
-//		
-//		Line2D.Double testLine = new Line2D.Double(startPoint, endPoint);
-//		testLines.add(testLine);
-//		
-//		boolean intersects = false;
-//		while (wallIterator.hasNext()) {
-//			Line2D.Double wall = (Line2D.Double)wallIterator.next();
-//			for (Line2D test : testLines) {
-//				if (lineIntersect(test, wall) != null) {
-//					return true;
-//				}
-//			}
-//		}
-//		
-//		return intersects;
-//	}
-//	
 	private boolean captured(Point2D.Double p) {
 		boolean withinLightRad = false;
 		for (Light l : lights) {
@@ -637,23 +568,16 @@ public class Group5Graph extends mosquito.sim.Player  {
 		lights = new HashSet<Light>();
 		buildGraph();	
 		
-		ArrayList<Point2D> zigzag = zigZagPath();
-		int pathSize = zigzag.size()/(numLights - 1);
+		this.zigZagPath = zigZagPath();
+		int pathSize = zigZagPath.size()/(numLights - 1);
 		
 		// initialize lights
 		for(int i = 0; i < numLights-1; i ++) {
-			Point2D nextstart = zigzag.get(i * pathSize);
+			Point2D nextstart = zigZagPath.get(i * pathSize);
 			Light l = new MoveableLight(nextstart.getX(), nextstart.getY(), true);
 			lights.add(l);
 		}
 		
-		computeMST();
-//		computePaths();
-		
-//		for (Light l: lights) {
-//			ArrayList<Point2D> zigzag = zigZagPath();
-//			paths.put(l, zigzag);
-//		}
 		zigZagPaths();
 		
 		collectorLight = new MoveableLight(collectorLocation.getX() - 1, collectorLocation.getY(), true);
@@ -694,7 +618,12 @@ public class Group5Graph extends mosquito.sim.Player  {
 				if (newPoint.distance(p) > 1) {
 					path.add(0, newPoint);
 				}
+				
 				paths.put(l, path);
+				
+				if (astarPaths.containsKey(ml)) {
+					astarPaths.remove(ml);
+				}
 			}
 			
 			dest = (Point2D.Double)path.get(0);
