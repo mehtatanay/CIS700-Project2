@@ -47,17 +47,20 @@ public class Group5Graph extends mosquito.sim.Player  {
 	
 	private Set<Light> lights;
 	private Set<Line2D> walls;
-		
+	private Set<Line2D> extendedwalls;	
+	
 	@Override
 	public ArrayList<Line2D> startNewGame(Set<Line2D> walls, int numLights) {
 		logger.trace("logging works");
 		this.numLights = numLights;
 		this.walls = new HashSet<Line2D>();
+		this.extendedwalls = new HashSet<Line2D>();
 		
-//		for (Line2D w: walls) {
-//			ArrayList<Line2D> extended = extend(w);
-//			this.walls.addAll(extended);
-//		}
+		for (Line2D w: walls) {
+			ArrayList<Line2D> extended = extend(w);
+			this.extendedwalls.addAll(extended);
+		}
+		
 		this.walls = walls;
 		
 		this.collectorLocation = new Point2D.Double(95,95);
@@ -150,30 +153,8 @@ public class Group5Graph extends mosquito.sim.Player  {
 		boolean vertical = (deltaX == 0);
 		
 		double slope = 0; 
-		double intercept = 0;
-		
-		if (!vertical && !horizontal) {
-			slope = deltaY/deltaX;
-			intercept = p2.getY() - slope * p2.getX();
-			double e1x = Math.max(1, p1.getX() - extension);
-			double e1y = e1x * slope + intercept;
-			e1y = Math.max(1, e1y);
-			e1y = Math.min(BOARDSIZE -1 , e1y);
-			
-			Point2D e1 = new Point2D.Double(e1x, e1y);	
-			
-			double e2x = Math.min(BOARDSIZE -1, p2.getX() + extension);
-			double e2y = e2x * slope + intercept;
-			e2y = Math.max(1, e2y);
-			e2y = Math.min(BOARDSIZE -1 , e2y);
-			
-			Point2D e2 = new Point2D.Double(e2x, e2y);
-			
-			extended.add(new Line2D.Double(e1, e2));
-		}
-		
-		else if (vertical){ 
-//			extension = 1;
+		double intercept = 0;	
+		if (vertical) { 
 			double vxInside = Math.max(1, p1.getX()- verticalMove);
 			double vxOutside = Math.min(BOARDSIZE - 1, p1.getX() + verticalMove);
 			
@@ -192,25 +173,23 @@ public class Group5Graph extends mosquito.sim.Player  {
 			extended.add(new Line2D.Double(outsideStart, outsideEnd));
 		}
 		
-		else if (horizontal) {
-//			extension = 1;
-			double originalY = p1.getY();
-			double vyAbove = Math.max(1, originalY - extension);
-			double vyBelow = Math.min(BOARDSIZE - 1, originalY + extension);
+		else {
+			slope = deltaY/deltaX;
+			intercept = p2.getY() - slope * p2.getX();
+			double e1x = Math.max(1, p1.getX() - extension);
+			double e1y = e1x * slope + intercept;
+			e1y = Math.max(1, e1y);
+			e1y = Math.min(BOARDSIZE -1 , e1y);
 			
-			double startX = Math.min(1, p1.getX() - extension);
-			double endX = Math.max(BOARDSIZE -1, p2.getX() + extension);
+			Point2D e1 = new Point2D.Double(e1x, e1y);	
 			
-			Point2D aboveStart = new Point2D.Double(startX, vyAbove);
-			Point2D aboveEnd = new Point2D.Double(endX, vyAbove);
+			double e2x = Math.min(BOARDSIZE -1, p2.getX() + extension);
+			double e2y = e2x * slope + intercept;
+			e2y = Math.max(1, e2y);
+			e2y = Math.min(BOARDSIZE -1 , e2y);
 			
-			Point2D belowStart = new Point2D.Double(startX, vyBelow);
-			Point2D belowEnd = new Point2D.Double(endX, vyBelow);
-			
-			extended.add(new Line2D.Double(aboveStart, aboveEnd));
-			extended.add(new Line2D.Double(belowStart, belowEnd));
-			extended.add(new Line2D.Double(aboveStart, belowStart));
-			extended.add(new Line2D.Double(aboveEnd, belowEnd));
+			Point2D e2 = new Point2D.Double(e2x, e2y);
+			extended.add(new Line2D.Double(e1, e2));
 		}
 		
 		return extended;
@@ -371,24 +350,83 @@ public class Group5Graph extends mosquito.sim.Player  {
 	}
 	
 	
+	private boolean intersectsWall(Point2D.Double point) {
+		boolean intersects = false;
+		for (Line2D w: walls) {
+			if (isOnLine(w, point)) {
+				intersects = true;
+				break;
+			}
+		}
+		
+		return intersects;
+	}
+	
 	private Point2D notOnWall(Point2D.Double point) {
 		Point2D freepoint = point;
 		for (Line2D w : walls) {
 			if (isOnLine(w, freepoint)) {
-				if (isOnLine(w, new Point2D.Double(point.getX() - 1, point.getY())) == false) {
+				if (intersectsWall(new Point2D.Double(point.getX() - 1, point.getY())) == false) {
 					freepoint = new Point2D.Double(point.getX() - 1, point.getY()); 
+					break;
 				}
-				else if (isOnLine(w, new Point2D.Double(point.getX() + 1, point.getY())) == false) {
+				else if (intersectsWall(new Point2D.Double(point.getX() + 1, point.getY())) == false) {
 					freepoint = new Point2D.Double(point.getX() + 1, point.getY());
+					break;
 				}
-				else if (isOnLine(w, new Point2D.Double(point.getX(), point.getY() - 1)) == false) {
+				else if (intersectsWall(new Point2D.Double(point.getX(), point.getY() - 1)) == false) {
 					freepoint = new Point2D.Double(point.getX(), point.getY() - 1);
+					break;
 				}
-				else if (isOnLine(w, new Point2D.Double(point.getX(), point.getY() + 1)) == false) {
+				else if (intersectsWall(new Point2D.Double(point.getX(), point.getY() + 1)) == false) {
 					freepoint = new Point2D.Double(point.getX(), point.getY() + 1);
+					break;
+				}
+				else {
+					Random rand = new Random();
+					int direction = rand.nextInt(4);
+					switch (direction) {
+					case 0:
+						if (freepoint.getX() > 1) {
+							freepoint = notOnWall(new Point2D.Double(freepoint.getX() - 1, freepoint.getY()));
+						}
+						else 
+							freepoint = notOnWall(new Point2D.Double(freepoint.getX() + 1, freepoint.getY()));
+						break;
+					case 1:
+						if (freepoint.getX() < BOARDSIZE) {
+							freepoint = notOnWall(new Point2D.Double(freepoint.getX() + 1, freepoint.getY()));
+						}
+						else 
+							freepoint = notOnWall(new Point2D.Double(freepoint.getX() - 1, freepoint.getY()));
+						break;
+					case 2:
+						if (freepoint.getY() > 1) {
+							freepoint = notOnWall(new Point2D.Double(freepoint.getX(), freepoint.getY() - 1));
+						}
+						else 
+							freepoint = notOnWall(new Point2D.Double(freepoint.getX(), freepoint.getY() + 1));
+						break;
+					case 3:
+						if (freepoint.getY() < BOARDSIZE) {
+							freepoint = notOnWall(new Point2D.Double(freepoint.getX(), freepoint.getY() + 1));
+						}
+						else 
+							freepoint = notOnWall(new Point2D.Double(freepoint.getX(), freepoint.getY() - 1));
+						break;
+					default:
+						if (freepoint.getY() < BOARDSIZE) {
+							freepoint = notOnWall(new Point2D.Double(freepoint.getX(), freepoint.getY() + 1));
+						}
+						else 
+							freepoint = notOnWall(new Point2D.Double(freepoint.getX(), freepoint.getY() - 1));
+						break;
+					}
+					
 				}
 			}
 		}
+		
 		return freepoint;
 	}
 	
@@ -463,49 +501,110 @@ public class Group5Graph extends mosquito.sim.Player  {
 		return null;
 	}
 	
-	boolean isObstructed(Point2D.Double startPoint, Point2D.Double endPoint) {
-		Iterator<Line2D> wallIterator = walls.iterator();
-		ArrayList<Line2D.Double> testLines = new ArrayList<Line2D.Double>();
-		Point2D.Double leftStart = new Point2D.Double(Math.max(0, startPoint.getX() - 1), startPoint.getY());
-		Point2D.Double leftEnd =  new Point2D.Double(Math.max(0, endPoint.getX() - 1), endPoint.getY());
-		
-		Line2D.Double left = new Line2D.Double(leftStart, leftEnd);
-		testLines.add(left);
-		
-		Point2D.Double rightStart = new Point2D.Double(Math.min(BOARDSIZE, startPoint.getX() + 1), startPoint.getY());
-		Point2D.Double rightEnd = new Point2D.Double(Math.min(BOARDSIZE, endPoint.getX() + 1), endPoint.getY());
-		
-		Line2D.Double right = new Line2D.Double(rightStart, rightEnd);
-		testLines.add(right);
-		
-		Point2D.Double aboveStart = new Point2D.Double(startPoint.getX(), Math.max(0, startPoint.getY() - 1));
-		Point2D.Double aboveEnd = new Point2D.Double(endPoint.getX(), Math.max(0, endPoint.getY() - 1));
-		Line2D.Double above = new Line2D.Double(aboveStart, aboveEnd);
-		testLines.add(above);
-		
-		
-		Point2D.Double belowStart =  new Point2D.Double(startPoint.getX(), Math.min(BOARDSIZE, startPoint.getY() + 1));
-		Point2D.Double belowEnd =  new Point2D.Double(endPoint.getX(), Math.min(BOARDSIZE, endPoint.getY() + 1));
-		Line2D.Double below = new Line2D.Double(belowStart,belowEnd);
-		testLines.add(below);
-		
-		
+	boolean isObstructedExtended(Point2D.Double startPoint, Point2D.Double endPoint) {
+		Iterator<Line2D> wallIterator = extendedwalls.iterator();		
 		Line2D.Double testLine = new Line2D.Double(startPoint, endPoint);
-		testLines.add(testLine);
 		
 		boolean intersects = false;
 		while (wallIterator.hasNext()) {
 			Line2D.Double wall = (Line2D.Double)wallIterator.next();
-			for (Line2D test : testLines) {
-				if (lineIntersect(test, wall) != null) {
+			if (lineIntersect(testLine, wall) != null) {
 					return true;
 				}
-			}
+			
 		}
 		
 		return intersects;
 	}
 	
+	
+	boolean isObstructed(Point2D.Double startPoint, Point2D.Double endPoint) {
+		Iterator<Line2D> wallIterator = walls.iterator();		
+		Line2D.Double testLine = new Line2D.Double(startPoint, endPoint);
+		
+		boolean intersects = false;
+		while (wallIterator.hasNext()) {
+			Line2D.Double wall = (Line2D.Double)wallIterator.next();
+			if (lineIntersect(testLine, wall) != null) {
+					return true;
+				}
+			
+		}
+		
+		return intersects;
+	}
+	
+
+	
+	
+//	boolean isObstructed(Point2D.Double startPoint, Point2D.Double endPoint) {
+//		Iterator<Line2D> wallIterator = walls.iterator();
+//		ArrayList<Line2D.Double> testLines = new ArrayList<Line2D.Double>();
+//		Point2D.Double leftStart = new Point2D.Double(Math.max(0, startPoint.getX() - 1), startPoint.getY());
+//		Point2D.Double leftEnd =  new Point2D.Double(Math.max(0, endPoint.getX() - 1), endPoint.getY());
+//		
+//		Line2D.Double left = new Line2D.Double(leftStart, leftEnd);
+//		
+//		leftStart = new Point2D.Double(Math.max(0, startPoint.getX() - 2), startPoint.getY());
+//		leftEnd =  new Point2D.Double(Math.max(0, endPoint.getX() - 2), endPoint.getY());
+//		
+//		Line2D.Double leftleft = new Line2D.Double(leftStart, leftEnd);
+//		testLines.add(left);
+//		testLines.add(leftleft);
+//		
+//		Point2D.Double rightStart = new Point2D.Double(Math.min(BOARDSIZE, startPoint.getX() + 1), startPoint.getY());
+//		Point2D.Double rightEnd = new Point2D.Double(Math.min(BOARDSIZE, endPoint.getX() + 1), endPoint.getY());
+//		
+//		Line2D.Double right = new Line2D.Double(rightStart, rightEnd);
+//		
+//		rightStart = new Point2D.Double(Math.min(BOARDSIZE, startPoint.getX() + 2), startPoint.getY());
+//		rightEnd =  new Point2D.Double(Math.min(BOARDSIZE, endPoint.getX() + 2), endPoint.getY());
+//		
+//		Line2D.Double rightright = new Line2D.Double(rightStart, rightEnd);
+//		testLines.add(rightright);
+//		
+//		Point2D.Double aboveStart = new Point2D.Double(startPoint.getX(), Math.max(0, startPoint.getY() - 1));
+//		Point2D.Double aboveEnd = new Point2D.Double(endPoint.getX(), Math.max(0, endPoint.getY() - 1));
+//		
+//		Line2D.Double above = new Line2D.Double(aboveStart, aboveEnd);
+//	    aboveStart = new Point2D.Double(startPoint.getX(), Math.max(0, startPoint.getY() - 2));
+//		aboveEnd = new Point2D.Double(endPoint.getX(), Math.max(0, endPoint.getY() - 2));
+//		
+//	    Line2D.Double aboveabove = new Line2D.Double(aboveStart, aboveEnd);
+//		testLines.add(above);
+//		testLines.add(aboveabove);
+//		
+//		
+//		Point2D.Double belowStart =  new Point2D.Double(startPoint.getX(), Math.min(BOARDSIZE, startPoint.getY() + 1));
+//		Point2D.Double belowEnd =  new Point2D.Double(endPoint.getX(), Math.min(BOARDSIZE, endPoint.getY() + 1));
+//		Line2D.Double below = new Line2D.Double(belowStart,belowEnd);
+//		
+//		
+//		testLines.add(below);
+//		
+//
+//	    belowStart =  new Point2D.Double(startPoint.getX(), Math.min(BOARDSIZE, startPoint.getY() + 2));
+//		belowEnd =  new Point2D.Double(endPoint.getX(), Math.min(BOARDSIZE, endPoint.getY() + 2));
+//		
+//		Line2D.Double belowbelow = new Line2D.Double(belowStart, belowEnd);
+//		testLines.add(belowbelow);
+//		
+//		Line2D.Double testLine = new Line2D.Double(startPoint, endPoint);
+//		testLines.add(testLine);
+//		
+//		boolean intersects = false;
+//		while (wallIterator.hasNext()) {
+//			Line2D.Double wall = (Line2D.Double)wallIterator.next();
+//			for (Line2D test : testLines) {
+//				if (lineIntersect(test, wall) != null) {
+//					return true;
+//				}
+//			}
+//		}
+//		
+//		return intersects;
+//	}
+//	
 	private boolean captured(Point2D.Double p) {
 		boolean withinLightRad = false;
 		for (Light l : lights) {
@@ -522,8 +621,10 @@ public class Group5Graph extends mosquito.sim.Player  {
 	private boolean allMosquitosCaptured(int[][] board) {
 		for (int i = 0; i < board.length; i ++) {
 			for (int j = 0; j < board[0].length; j ++) {
-				if (!captured(new Point2D.Double(i, j)) && board[i][j] > 0) {
-						return false;
+				if (board[i][j] > 0) {
+					if (!captured(new Point2D.Double(i, j))) {
+							return false;
+						}
 				}
 			}
 		}
@@ -570,40 +671,46 @@ public class Group5Graph extends mosquito.sim.Player  {
 
 			// don't move collector light
 			if (ml.equals(collectorLight)) {
+				if (ml.getLocation().equals(collectorLocation) == false) {
+					ml.moveTo(collectorLocation.getX(), collectorLocation.getY());
+				}	
 				continue;
 			}
 			
-			else if (allMosquitosCaptured(board)) {
-				dest = (Point2D.Double) collectorLocation;
+			else if (ml.getLocation().distance(collectorLocation) < 10 && 
+						!isObstructed((Point2D.Double) ml.getLocation(), (Point2D.Double)collectorLocation)) {
+				ml.turnOff();
 			}
 			
-			// check if this is a greedy light
-			else if (greedyLights.containsKey(ml)) {
-				Point2D currLocation = ml.getLocation();
-				Point2D destination = greedyLights.get(ml);
-				
-				// pick a new greedy location or the collector if we've reached our previous destination
-				if (currLocation.equals(destination)) {
-					Point2D newDestination = collectorLocation;
-					greedyLights.put(ml, (Point2D.Double)newDestination);
-				}	
-				
-				dest = greedyLights.get(ml);
-			}
-			
-			// add lights that have finished their path to the greedy lights
-			else if (ml.getLocation().equals(collectorLocation)) {
-				Point2D greedyLocation = greedyLocation(board);
-				greedyLights.put(ml, (Point2D.Double)greedyLocation);
+			else if (ml.getLocation().distance(collectorLocation) > 20 && !ml.isOn()) {
+				ml.turnOn();
 			}
 			
 			Point2D.Double p = (Point2D.Double)ml.getLocation();			
 			ArrayList<Point2D> path = paths.get(l);
+			if (path.size() == 1 && !allMosquitosCaptured(board)) {
+				Point2D newPoint = greedyLocation(board);
+				if (newPoint.distance(p) > 1) {
+					path.add(0, newPoint);
+				}
+				paths.put(l, path);
+			}
 			
-			// if this light isn't greedy, send it along its path
-			if (dest == null) {
-				dest = (path.size() > 0) ? (Point2D.Double)path.get(0) : 
-								  (Point2D.Double)collectorLocation;
+			dest = (Point2D.Double)path.get(0);
+			
+			if (allMosquitosCaptured(board)) {
+				path = new ArrayList<Point2D>();
+				path.add(collectorLocation);
+				paths.put(ml, path);
+				dest = (Point2D.Double) collectorLocation;
+				
+				if (astarPaths.containsKey(ml)) {
+					ArrayList<Point2D.Double> astarPath = astarPaths.get(ml);
+					int lastIndex  = astarPath.size() - 1; 
+					if (astarPath.size() == 0 || (astarPath.get(lastIndex).equals(collectorLocation) == false)) {
+						astarPaths.remove(ml);
+					}
+				}
 			}
 			
 			// if we're at the destination, get the next destination point
@@ -616,6 +723,10 @@ public class Group5Graph extends mosquito.sim.Player  {
 					try {
 						ArrayList<Point2D.Double> astarPath = astar.getPath(ml, nextPoint, board);
 						Point2D.Double firstPoint = astarPath.get(0);
+						if (p.distance(firstPoint) > 1) {
+							System.out.println("illegal move here");
+						}
+						
 						ml.moveTo(firstPoint.getX(), firstPoint.getY());
 						astarPath.remove(0);
 						astarPaths.put(ml, astarPath);
@@ -636,6 +747,10 @@ public class Group5Graph extends mosquito.sim.Player  {
 				if (astarPath.size() > 0) {
 					Point2D.Double nextPoint = astarPath.get(0);
 					astarPath.remove(0);
+					if (p.distance(nextPoint) > 1) {
+						System.out.println("illegal move here");
+					}
+					
 					ml.moveTo(nextPoint.getX(), nextPoint.getY());
 					astarPaths.put(ml, astarPath);
 				}
@@ -649,6 +764,9 @@ public class Group5Graph extends mosquito.sim.Player  {
 				try {
 					ArrayList<Point2D.Double> astarPath = astar.getPath(ml, dest, board);
 					Point2D.Double firstPoint = astarPath.get(0);
+					if (p.distance(firstPoint) > 1) {
+						System.out.println("illegal move here");
+					}
 					ml.moveTo(firstPoint.getX(), firstPoint.getY());
 					astarPath.remove(0);
 					astarPaths.put(ml, astarPath);
@@ -659,47 +777,63 @@ public class Group5Graph extends mosquito.sim.Player  {
 			}
 			
 			else {
-				moveTowards(ml, dest);
+					moveTowards(ml, dest);
 			}
 			
 		}
 		return lights;
 	}
 
+
 	private boolean moveTowards(MoveableLight l, Point2D.Double dest) {
 		Point2D.Double current = (Point2D.Double) l.getLocation();
-		// move away from away from a wall if we're close
-		for(Line2D w:walls) {
-			if(w.getP1().distance(current) < 2) {
-				dest = new Point2D.Double(-w.getP1().getX(), -w.getP1().getY());
-			}
-			
-			else if (w.getP2().distance(current) < 2) {
-				dest = new Point2D.Double(-w.getP2().getX(), -w.getP2().getY());
-			}
-		}
-		
 		boolean moved = false;
 		double xdiff = current.getX() - dest.getX();
 		double ydiff = current.getY() - dest.getY();
+		
+		if (this.isObstructedExtended(current, dest)) {
+			int buffer = 10;
+			Point2D.Double below = new Point2D.Double(current.getX(), Math.min(BOARDSIZE, current.getY() + buffer));
+			Point2D.Double above = new Point2D.Double(current.getX(), Math.max(0, current.getY() - buffer));
+			Point2D.Double left = new Point2D.Double(Math.max(0,current.getX() - buffer), current.getY());
+			Point2D.Double right = new Point2D.Double(Math.min(BOARDSIZE,current.getX() + buffer), current.getY());
+			if (isObstructedExtended(above, dest) == false && ydiff > 0) {
+				l.moveUp();
+				return true;
+			}
+			else if (isObstructedExtended(below, dest) == false && ydiff < 0) {
+				l.moveDown();
+				return true;
+			}
+			else if (isObstructedExtended(left, dest) == false && xdiff > 0) {
+				l.moveLeft();
+				return true;
+			}
+			else if (isObstructedExtended(right, dest) == false && xdiff < 0) {
+				l.moveRight();
+				return true;
+			}
+		}
+		
+
 		if (Math.abs(xdiff) > Math.abs(ydiff)) {
 			if (current.getX() > dest.getX()) {
 				l.moveLeft();
-				moved = true;
+				return true;
 			}
 			else if (current.getX() < dest.getX()){
 				l.moveRight();
-				moved = true;
+				return true;
 			}
 		}
 		else {
 			if (current.getY() > dest.getY()) {
 				l.moveUp();
-				moved = true;
+				return true;
 			}
 			else if (current.getY() < dest.getY()) {
 				l.moveDown();
-				moved = true;
+				return true;
 			}
 		}
 		
