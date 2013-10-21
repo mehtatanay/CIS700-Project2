@@ -63,9 +63,9 @@ public class Group5Graph extends mosquito.sim.Player  {
 		}
 		
 		this.walls = walls;
-		
-		this.collectorLocation = new Point2D.Double(95,95);
 		this.astar = new AStar(this.walls);
+		this.collectorLocation = collLocation();
+		
 		
 		ArrayList<Line2D> lines = new ArrayList<Line2D>();
 		Line2D line = new Line2D.Double(30, 30, 80, 80);
@@ -73,7 +73,29 @@ public class Group5Graph extends mosquito.sim.Player  {
 		return lines;
 	}
 	
-	
+	private Point2D.Double collLocation() {
+		Point2D.Double returnVal = new Point2D.Double(95,95);
+		int max = Integer.MIN_VALUE;
+		int current = 0;
+		//identify the 10*10 area that is least obstructed
+		for(int a = 0; a < 100; a+=10) {
+			for(int b = 0; b < 100; b+=10) {
+				current = 0;
+				for(int c = 0; c < 100; c+=10) {
+					for(int d = 0; d < 100; d+=10) {
+						if(!isObstructed(new Point2D.Double(a,b), new Point2D.Double(c,d))) {
+							current ++;
+						}
+					}
+				}
+				if(current > max) {
+					returnVal = new Point2D.Double(a,b);
+					max = current;
+				}
+			}
+		}
+		return returnVal;
+	}
 	private static boolean withinLightRadius(Point2D startPoint, Point2D testPoint) {
 		return (startPoint.distance(testPoint)) <= (2 * LIGHTRADIUS);
 	
@@ -579,8 +601,11 @@ public class Group5Graph extends mosquito.sim.Player  {
 		}
 		
 		zigZagPaths();
-		
-		collectorLight = new MoveableLight(collectorLocation.getX() - 1, collectorLocation.getY(), true);
+		if(collectorLocation.getX() > 0) { 
+			collectorLight = new MoveableLight(collectorLocation.getX() - 1, collectorLocation.getY(), true);
+		} else {
+			collectorLight = new MoveableLight(collectorLocation.getX() + 1, collectorLocation.getY(), true);
+		}
 		lights.add(collectorLight);
 		
 		return lights;
