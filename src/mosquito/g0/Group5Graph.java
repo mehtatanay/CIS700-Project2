@@ -35,6 +35,8 @@ public class Group5Graph extends mosquito.sim.Player  {
 	private HashMap<Light, ArrayList<Point2D>> paths = new HashMap<Light, ArrayList<Point2D>>();
 	private HashMap<Light, ArrayList<Point2D.Double>> astarPaths = new HashMap<Light, ArrayList<Point2D.Double>>();
 	private HashMap<MoveableLight, Point2D.Double> greedyLights = new HashMap<MoveableLight, Point2D.Double> ();
+	private HashSet<Point2D.Double> greedyLocations = new HashSet<Point2D.Double> ();
+	
 	ArrayList<Point2D> zigZagPath;
 	
 	private Logger logger =  Logger.getLogger(this.getClass()); 
@@ -126,10 +128,11 @@ public class Group5Graph extends mosquito.sim.Player  {
 	}
 	
 	private Point2D greedyLocation(int [][] board) {
+
+		//populate greedy locations set
+		greedyLocations = new HashSet<Point2D.Double> ();
 		Point2D.Double location = new Point2D.Double(50,50);
 		Point2D.Double validLocation = null;
-		int max = 0;
-		int validmax = 0;
 		
 		for(int i = 0; i < 100; i+=10) {
 			for(int j = 0; j < 100; j+=10) {
@@ -145,15 +148,20 @@ public class Group5Graph extends mosquito.sim.Player  {
 					}
 				}
 				
-				if(sum > max) {
-					location = new Point2D.Double(i + 5, j + 5);
-					max = sum;
+				if (sum > 0 && isValidDestination(location)) {
+					greedyLocations.add(new Point2D.Double(i+5,j+5));
 				}
-				
-				if (sum > validmax && isValidDestination(location)) {
-					validLocation = new Point2D.Double(i+5,j+5);
-					validmax = sum;
-				}
+			}
+		}
+		
+		if(greedyLocations.isEmpty()) { return (Point2D.Double)collectorLocation; }
+		
+		//pick greedy location furthest away from collector
+		double maxDistance = 0;
+		for(Point2D.Double greed:greedyLocations) {
+			if(greed.distance((Point2D.Double)collectorLocation) > maxDistance) {
+				validLocation = greed;
+				maxDistance = greed.distance((Point2D.Double)collectorLocation);
 			}
 		}
 		
