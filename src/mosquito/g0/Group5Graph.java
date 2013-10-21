@@ -89,7 +89,7 @@ public class Group5Graph extends mosquito.sim.Player  {
 					}
 				}
 				if(current > max) {
-					returnVal = new Point2D.Double(a,b);
+					returnVal = new Point2D.Double(a + 4, b + 5);
 					max = current;
 				}
 			}
@@ -543,6 +543,20 @@ public class Group5Graph extends mosquito.sim.Player  {
 	}
 	
 	
+	Line2D getExtendedObstruction(Point2D.Double startPoint, Point2D.Double endPoint) {
+		Iterator<Line2D> wallIterator = extendedwalls.iterator();		
+		Line2D.Double testLine = new Line2D.Double(startPoint, endPoint);
+		while (wallIterator.hasNext()) {
+			Line2D.Double wall = (Line2D.Double)wallIterator.next();
+			if (lineIntersect(testLine, wall) != null) {
+					return wall;
+				}
+			
+		}
+		
+		return null;
+	}
+	
 	boolean isObstructed(Point2D.Double startPoint, Point2D.Double endPoint) {
 		Iterator<Line2D> wallIterator = walls.iterator();		
 		Line2D.Double testLine = new Line2D.Double(startPoint, endPoint);
@@ -745,29 +759,32 @@ public class Group5Graph extends mosquito.sim.Player  {
 		boolean moved = false;
 		double xdiff = current.getX() - dest.getX();
 		double ydiff = current.getY() - dest.getY();
+		Line2D obstruction = getExtendedObstruction(current, dest);
 		
-		if (this.isObstructedExtended(current, dest)) {
-			int buffer = 10;
-			Point2D.Double below = new Point2D.Double(current.getX(), Math.min(BOARDSIZE, current.getY() + buffer));
-			Point2D.Double above = new Point2D.Double(current.getX(), Math.max(0, current.getY() - buffer));
-			Point2D.Double left = new Point2D.Double(Math.max(0,current.getX() - buffer), current.getY());
-			Point2D.Double right = new Point2D.Double(Math.min(BOARDSIZE,current.getX() + buffer), current.getY());
-			if (isObstructedExtended(above, dest) == false && ydiff > 0) {
-				l.moveUp();
-				return true;
-			}
-			else if (isObstructedExtended(below, dest) == false && ydiff < 0) {
-				l.moveDown();
-				return true;
-			}
-			else if (isObstructedExtended(left, dest) == false && xdiff > 0) {
-				l.moveLeft();
-				return true;
-			}
-			else if (isObstructedExtended(right, dest) == false && xdiff < 0) {
-				l.moveRight();
-				return true;
-			}
+		if (obstruction != null) {
+//			int buffer = 10;
+//			Point2D.Double below = new Point2D.Double(current.getX(), Math.min(BOARDSIZE, current.getY() + buffer));
+//			Point2D.Double above = new Point2D.Double(current.getX(), Math.max(0, current.getY() - buffer));
+//			Point2D.Double left = new Point2D.Double(Math.max(0,current.getX() - buffer), current.getY());
+//			Point2D.Double right = new Point2D.Double(Math.min(BOARDSIZE,current.getX() + buffer), current.getY());
+//			if (isObstructedExtended(above, dest) == false && ydiff > 0) {
+//				l.moveUp();
+//				return true;
+//			}
+//			else if (isObstructedExtended(below, dest) == false && ydiff < 0) {
+//				l.moveDown();
+//				return true;
+//			}
+//			else if (isObstructedExtended(left, dest) == false && xdiff > 0) {
+//				l.moveLeft();
+//				return true;
+//			}
+//			else if (isObstructedExtended(right, dest) == false && xdiff < 0) {
+//				l.moveRight();
+//				return true;
+//			}
+		Point2D.Double previous = 
+		
 		}
 		
 
