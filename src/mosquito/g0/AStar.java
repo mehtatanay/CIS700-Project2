@@ -14,9 +14,41 @@ import mosquito.sim.MoveableLight;
 public class AStar {
 	//obstacles in the board
 	private static Set<Line2D> walls;
+	private double minDistance;
 	
 	//constructor takes the obstacles
-	public AStar(Set<Line2D> w){walls = w;}
+	public AStar(Set<Line2D> w){
+		walls = w;
+		minDistance = Double.MAX_VALUE;
+		for (Line2D wall1 : walls) {
+			for (Line2D wall2 : walls) {
+				if (wall1.equals(wall2)) {
+					continue;
+				}
+				
+				Point2D p11 = wall1.getP1();
+				Point2D p12  = wall1.getP2();
+				
+				Point2D p21 = wall2.getP1();
+				Point2D p22 = wall2.getP2();
+				
+				double distance11 = wall2.ptLineDist(p11) > 0 ? wall2.ptLineDist(p11) : Double.MAX_VALUE;
+				double distance12 = wall2.ptLineDist(p12) > 0 ? wall2.ptLineDist(p12): Double.MAX_VALUE ;
+				
+				double distance21 = wall1.ptLineDist(p21) > 0 ? wall1.ptLineDist(p21) : Double.MAX_VALUE;
+				double distance22 = wall1.ptLineDist(p22) > 0 ?  wall1.ptLineDist(p22) : Double.MAX_VALUE;
+				
+				double dist =  Math.min(Math.min(distance21, distance22), Math.min(distance12, distance11));
+				
+				if (dist < minDistance) {
+					minDistance = dist;
+				}
+			}
+		}
+	
+		minDistance = Math.max(4, minDistance);
+		minDistance = Math.min(10, minDistance);
+	}
 	
 	//A* search method for optimized path. Implemented from the Wikipedia page's pseudo code.
 	//returns an arraylist of points that the light should go for the optimal path
@@ -57,15 +89,32 @@ public class AStar {
 			visited.add(current);
 			
 			//for each neighbor to the current node, find the ones to add to openSet
-			for (Point2D.Double neighbor : getNeighbors(current)){
+			HashSet<Point2D.Double>  neighbors = getNeighbors(current);
+			for (Point2D.Double neighbor : neighbors){
 				float tentative_g_score = g_score.get(current) + (float)distanceBetween(current, neighbor, board);
 				float tentative_f_score = tentative_g_score + (float)absoluteDistanceBetween(neighbor, destination);
-				
+	
 				//HACK TO NOT GO AROUND CORNERS
 				for(Line2D w:walls) {
-					if(w.getP1().distance(neighbor) < 2 || w.getP2().distance(neighbor) < 2) {
-						tentative_f_score = -1000;
+					if(w.getP1().distance(neighbor) < minDistance/2 || w.getP2().distance(neighbor) < minDistance/2) {
+//						tentative_f_score += 10000;
+						tentative_f_score += 10000;
+//						break;
 					}
+					if(w.getP1().distance(neighbor) < 1 || w.getP2().distance(neighbor) < 1) {
+						tentative_f_score += 1000000;
+					}
+					
+					
+//					if (w.getP1().distance(neighbor) < 3 || w.getP2().distance(neighbor) < 3) {
+//						tentative_f_score += 100000;
+////						break;
+//					}
+//					
+//					if (w.getP1().distance(neighbor) < 1 || w.getP2().distance(neighbor) < 1) {
+//						tentative_f_score += 100000;
+////						break;
+//					}
 				}
 				
 				if(visited.contains(neighbor) && tentative_f_score > f_score.get(neighbor))
@@ -148,23 +197,24 @@ public class AStar {
 	
 	//straight line distance modified to include mosquito density
 	private static double distanceBetween(Point2D.Double start, Point2D.Double end, int[][] board){
-		int mosquitos = 0;
-		for (int i=-6;i<=6;i++)
-		{
-			for (int j=-6; j<=6;j++)
-			{
-				int new_x = (int)(end.x + i);
-				int new_y = (int)(end.y + j);
-				if(new_x >=0 && new_x <=100 && new_y >=0 && new_y <=100){
-					try{
-						mosquitos += board[new_x][new_y];
-					}catch(Exception e){}
-				}
-			}
-		}
-		if(mosquitos == 0)
-			mosquitos = 1;
-		return Math.sqrt(Math.pow(end.x - start.x, 2) + Math.pow(end.y - start.y, 2)) + 100/mosquitos;
+//		int mosquitos = 0;
+//		for (int i=-6;i<=6;i++)
+//		{
+//			for (int j=-6; j<=6;j++)
+//			{
+//				int new_x = (int)(end.x + i);
+//				int new_y = (int)(end.y + j);
+//				if(new_x >=0 && new_x <=100 && new_y >=0 && new_y <=100){
+//					try{
+//						mosquitos += board[new_x][new_y];
+//					}catch(Exception e){}
+//				}
+//			}
+//		}
+//		if(mosquitos == 0)
+//			mosquitos = 1;
+		return Math.sqrt(Math.pow(end.x - start.x, 2) + Math.pow(end.y - start.y, 2));
+//				+ 100/mosquitos;
 	}
 	
 	//return the point that has the lowest value in the map if it is contained in the set.
