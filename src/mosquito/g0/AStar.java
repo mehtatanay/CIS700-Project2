@@ -64,7 +64,7 @@ public class AStar {
 				//HACK TO NOT GO AROUND CORNERS
 				for(Line2D w:walls) {
 					if(w.getP1().distance(neighbor) < 2 || w.getP2().distance(neighbor) < 2) {
-						tentative_f_score = -1000;
+						tentative_f_score += 1000;
 					}
 				}
 				
@@ -148,7 +148,7 @@ public class AStar {
 	
 	//straight line distance modified to include mosquito density
 	private static double distanceBetween(Point2D.Double start, Point2D.Double end, int[][] board){
-		int mosquitos = 0;
+		/*int mosquitos = 0;
 		for (int i=-6;i<=6;i++)
 		{
 			for (int j=-6; j<=6;j++)
@@ -163,8 +163,8 @@ public class AStar {
 			}
 		}
 		if(mosquitos == 0)
-			mosquitos = 1;
-		return Math.sqrt(Math.pow(end.x - start.x, 2) + Math.pow(end.y - start.y, 2)) + 100/mosquitos;
+			mosquitos = 1;*/
+		return Math.sqrt(Math.pow(end.x - start.x, 2) + Math.pow(end.y - start.y, 2)) + 100;
 	}
 	
 	//return the point that has the lowest value in the map if it is contained in the set.
