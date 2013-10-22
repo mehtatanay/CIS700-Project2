@@ -36,6 +36,10 @@ public class Group5Graph extends mosquito.sim.Player  {
 	private HashMap<Light, ArrayList<Point2D.Double>> astarPaths = new HashMap<Light, ArrayList<Point2D.Double>>();
 	private HashMap<MoveableLight, Point2D.Double> greedyLights = new HashMap<MoveableLight, Point2D.Double> ();
 	private HashSet<Point2D.Double> greedyLocations = new HashSet<Point2D.Double> ();
+	private HashMap<MoveableLight, Integer> waitTurns = new HashMap<MoveableLight, Integer>();
+	private static final int waits = 5;
+	private HashMap<MoveableLight, ArrayList<Direction>> lastTenTurns = new HashMap<MoveableLight, ArrayList<Direction>>();
+	private int turns = 0;
 	
 	ArrayList<Point2D> zigZagPath;
 	
@@ -91,12 +95,12 @@ public class Group5Graph extends mosquito.sim.Player  {
 					}
 				}
 				if(current > max) {
-					returnVal = new Point2D.Double(a + 4, b + 5);
+					returnVal = (Point2D.Double)notOnWall(new Point2D.Double(a + 4, b + 5));
 					max = current;
 				}
 			}
 		}
-		return returnVal;
+		return (Point2D.Double)notOnWall(returnVal);
 	}
 	private static boolean withinLightRadius(Point2D startPoint, Point2D testPoint) {
 		return (startPoint.distance(testPoint)) <= (2 * LIGHTRADIUS);
@@ -109,7 +113,7 @@ public class Group5Graph extends mosquito.sim.Player  {
 	
 	for (Light l: lights) {
 		MoveableLight ml = (MoveableLight)l;
-		if (withinLightRadius(point, ml.getLocation())) {
+		if (point.distance(ml.getLocation()) < 20) {
 			valid = false;
 			break;
 		}
@@ -122,9 +126,57 @@ public class Group5Graph extends mosquito.sim.Player  {
 			   }
 		    }
 		}
+	
+	for (Point2D greedypoint: greedyLocations) {
+		if (point.distance(greedypoint) < 20) {
+			valid = false;
+			break;
+		}
+	}
 
 	
 		return valid;
+	}
+	
+	private Point2D.Double closestGreedyPoint(Point2D.Double startPoint) {
+		double distance = (double)Integer.MAX_VALUE;
+		Point2D.Double closest = (Point2D.Double) collectorLocation;
+		for (Point2D.Double greedyPoint : greedyLocations) {
+			double currdistance = startPoint.distance(greedyPoint);
+			if (currdistance < distance) {
+				closest = greedyPoint;
+				distance = currdistance;
+			}
+		}
+		
+		return closest;
+	}
+	
+	private void computeGreedyLocations (int [][] board) {
+		greedyLocations = new HashSet<Point2D.Double> ();
+		Point2D.Double location = new Point2D.Double(50,50);
+		Point2D.Double validLocation = null;
+		
+		for(int i = 0; i < 100; i+=10) {
+			for(int j = 0; j < 100; j+=10) {
+				//reset the sum for this chunk
+				int sum = 0;
+				for (int x = 0; x < 10; x++){
+					for(int y= 0; y < 10; y++)
+					{
+//						sum += board[i + x][j + y];
+						if (!isObstructed(new Point2D.Double(i + x, j + y), 
+								new Point2D.Double(i + 5, j+ 5))) {
+							sum += board[i+x][j+y];
+						}
+					}
+				}
+				
+				if (sum > 0 && isValidDestination(new Point2D.Double(i + 5, j + 5))) {
+					greedyLocations.add((Point2D.Double)notOnWall(new Point2D.Double(i+5,j+5)));
+				}
+			}
+		}
 	}
 	
 	private Point2D greedyLocation(int [][] board) {
@@ -154,7 +206,9 @@ public class Group5Graph extends mosquito.sim.Player  {
 			}
 		}
 		
-		if(greedyLocations.isEmpty()) { return (Point2D.Double)collectorLocation; }
+		if(greedyLocations.isEmpty()) { 
+			return (Point2D.Double)collectorLocation; 
+		}
 		
 		//pick greedy location furthest away from collector
 		double maxDistance = 0;
@@ -470,8 +524,12 @@ public class Group5Graph extends mosquito.sim.Player  {
 			int j = (movingRight) ? 5 : 85;
 			int step = (movingRight) ? 20 : -20;
 			while (j < BOARDSIZE && j > 0) {
-				Point2D.Double nextPoint = new Point2D.Double(i, j);
-				path.add(notOnWall(nextPoint));
+				Point2D.Double nextPoint = (Point2D.Double)notOnWall(new Point2D.Double(i, j));
+				while (nextPoint.equals(collectorLocation)) {
+					double nextX = Math.max(BOARDSIZE, nextPoint.getX() + 1);
+					nextPoint = (Point2D.Double)notOnWall(new Point2D.Double(nextX, nextPoint.getY()));
+				}
+				path.add(nextPoint);
 				j+= step;
 			}
 			movingRight = !movingRight;
@@ -628,12 +686,32 @@ public class Group5Graph extends mosquito.sim.Player  {
 		} else {
 			collectorLight = new MoveableLight(collectorLocation.getX() + 1, collectorLocation.getY(), true);
 		}
+		
 		lights.add(collectorLight);
+		
+		// initialize moves map
+		ArrayList<Direction> start = new ArrayList<Direction>();
+		start.add(Direction.STAY);
+		start.add(Direction.STAY);
+		start.add(Direction.STAY);
+		start.add(Direction.STAY);
+		start.add(Direction.STAY);
+		start.add(Direction.STAY);
+		start.add(Direction.STAY);
+		start.add(Direction.STAY);
+		start.add(Direction.STAY);
+		start.add(Direction.STAY);
+		
+		for (Light l : lights) {
+			lastTenTurns.put((MoveableLight)l, start);
+		}
 		
 		return lights;
 	}
 	
 	public Set<Light> updateLights(int[][] board) {		
+		turns ++;
+		
 		//for each light
 		for (Light l : lights) {
 			
@@ -661,9 +739,16 @@ public class Group5Graph extends mosquito.sim.Player  {
 			Point2D.Double p = (Point2D.Double)ml.getLocation();			
 			ArrayList<Point2D> path = paths.get(l);
 			if (path.size() == 1 && !allMosquitosCaptured(board)) {
-				Point2D newPoint = greedyLocation(board);
+				if (greedyLocations.size() < 1) {
+					computeGreedyLocations(board);
+				}
+				
+				Point2D.Double newPoint = closestGreedyPoint(p);
+				
 				if (newPoint.distance(p) > 1) {
 					path.add(0, newPoint);
+					greedyLights.put(ml, newPoint);
+					greedyLocations.remove(newPoint);
 				}
 				
 				paths.put(l, path);
@@ -690,9 +775,49 @@ public class Group5Graph extends mosquito.sim.Player  {
 				}
 			}
 			
+			// wait if we are changing directions
+			if (waitTurns.containsKey(l)) {
+				int waitsleft = waitTurns.get(l);
+				waitsleft --;
+				if (waitsleft == 0) {
+					waitTurns.remove(l);
+				}
+				else {
+					waitTurns.put(ml, waitsleft);
+					continue;
+				}
+			}
+			
+			// check if we are changing directions
+			if (changingDirections(ml)) {
+				waitTurns.put(ml, waits);
+				continue;
+			}
+			
+			
 			// if we're at the destination, get the next destination point
 			if (p.getX() == dest.getX() && p.getY() == dest.getY() && path.size() > 1) {
+//				if (waitTurns.containsKey(ml)) {
+//					Integer waitsleft = waitTurns.get(ml);
+//					waitsleft --;
+//					if (waitsleft <= 0) {
+//						waitTurns.remove(ml);
+//					}
+//					else {
+//						waitTurns.put(ml, waitsleft);
+//						continue;
+//					}
+//				}
+//				else {
+//					waitTurns.put(ml, new Integer(waits));
+//					continue;
+//				}
+
 				path.remove(0);
+				if (greedyLights.containsKey(ml) && greedyLights.get(ml).equals(p)) {
+					greedyLights.remove(ml);
+				}
+				
 				Point2D.Double nextPoint = (Point2D.Double)(path.get(0));
 				
 				// create an astar path if the next destination is obstructed
@@ -705,6 +830,9 @@ public class Group5Graph extends mosquito.sim.Player  {
 						}
 						
 						ml.moveTo(firstPoint.getX(), firstPoint.getY());
+						Direction nextDirection = computeNextDirection(p, firstPoint);
+						addNextDirection(ml, nextDirection);
+						
 						astarPath.remove(0);
 						astarPaths.put(ml, astarPath);
 					}
@@ -729,6 +857,9 @@ public class Group5Graph extends mosquito.sim.Player  {
 					}
 					
 					ml.moveTo(nextPoint.getX(), nextPoint.getY());
+					
+					Direction nextDirection = computeNextDirection(p, nextPoint);
+					addNextDirection(ml, nextDirection);
 					astarPaths.put(ml, astarPath);
 				}
 				
@@ -741,9 +872,15 @@ public class Group5Graph extends mosquito.sim.Player  {
 				try {
 					ArrayList<Point2D.Double> astarPath = astar.getPath(ml, dest, board);
 					Point2D.Double firstPoint = astarPath.get(0);
+					
+					// keep track of which direction we're moving
 					if (p.distance(firstPoint) > 1) {
 						System.out.println("illegal move here");
 					}
+					
+					Direction nextDirection = computeNextDirection(p, firstPoint);
+					addNextDirection(ml, nextDirection);
+					
 					ml.moveTo(firstPoint.getX(), firstPoint.getY());
 					astarPath.remove(0);
 					astarPaths.put(ml, astarPath);
@@ -760,9 +897,65 @@ public class Group5Graph extends mosquito.sim.Player  {
 		}
 		return lights;
 	}
+	
+	private Direction computeNextDirection(Point2D.Double current, Point2D.Double next) {
+		Direction nextDirection = Direction.STAY;
+		if (next.getX() > current.getX()) {
+			nextDirection = Direction.RIGHT;
+		}
+		else if (next.getX() < current.getX()) {
+			nextDirection = Direction.LEFT;
+		}
+		else if (next.getY() > current.getY()) {
+			nextDirection = Direction.DOWN;
+		}
+		else if (next.getY() < current.getY()) {
+			nextDirection = Direction.UP;
+		}
+		return nextDirection;
+	}
 
-
+	private void addNextDirection(MoveableLight l, Direction next) {
+		int index = turns % 10;
+		ArrayList<Direction> directions = lastTenTurns.get(l);
+		directions.set(index, next);
+		lastTenTurns.put(l, directions);
+	}
+	
+	private boolean changingDirections(MoveableLight l) {
+		if (turns < 10) {
+			return false;
+		}
+		
+		ArrayList<Direction> pastTenTurns = lastTenTurns.get(l);
+		boolean changing = false;
+		boolean wasConstant = true;
+		int startIndex = (turns - 10) % 10;
+		
+		// if we were just staying put, return false
+		if (pastTenTurns.get((turns - 1) % 10) == Direction.STAY) {
+			return false;
+		}
+		
+		for (int i = 0; i < 8; i++) {
+			int ind1 = startIndex;
+			int ind2 = (startIndex + 1) % 10;
+			if (pastTenTurns.get(ind1) != pastTenTurns.get(ind2)) {
+				wasConstant = false;
+				break;
+			}
+			
+			startIndex = (startIndex + 1) % 10;
+		}
+		
+		if (wasConstant && pastTenTurns.get(turns % 10) != pastTenTurns.get((turns - 1) % 10)) {
+			changing = true;
+		}
+		return changing;
+	}
+	
 	private boolean moveTowards(MoveableLight l, Point2D.Double dest) {
+		Direction nextDirection = Direction.STAY;
 		Point2D.Double current = (Point2D.Double) l.getLocation();
 		boolean moved = false;
 		double xdiff = current.getX() - dest.getX();
@@ -770,53 +963,65 @@ public class Group5Graph extends mosquito.sim.Player  {
 		Line2D obstruction = getExtendedObstruction(current, dest);
 		
 		if (obstruction != null) {
-//			int buffer = 10;
-//			Point2D.Double below = new Point2D.Double(current.getX(), Math.min(BOARDSIZE, current.getY() + buffer));
-//			Point2D.Double above = new Point2D.Double(current.getX(), Math.max(0, current.getY() - buffer));
-//			Point2D.Double left = new Point2D.Double(Math.max(0,current.getX() - buffer), current.getY());
-//			Point2D.Double right = new Point2D.Double(Math.min(BOARDSIZE,current.getX() + buffer), current.getY());
-//			if (isObstructedExtended(above, dest) == false && ydiff > 0) {
-//				l.moveUp();
-//				return true;
-//			}
-//			else if (isObstructedExtended(below, dest) == false && ydiff < 0) {
-//				l.moveDown();
-//				return true;
-//			}
-//			else if (isObstructedExtended(left, dest) == false && xdiff > 0) {
-//				l.moveLeft();
-//				return true;
-//			}
-//			else if (isObstructedExtended(right, dest) == false && xdiff < 0) {
-//				l.moveRight();
-//				return true;
-//			}
-		Point2D.Double previous = 
-		
-		}
-		
-
-		if (Math.abs(xdiff) > Math.abs(ydiff)) {
-			if (current.getX() > dest.getX()) {
-				l.moveLeft();
-				return true;
-			}
-			else if (current.getX() < dest.getX()){
-				l.moveRight();
-				return true;
-			}
-		}
-		else {
-			if (current.getY() > dest.getY()) {
-				l.moveUp();
-				return true;
-			}
-			else if (current.getY() < dest.getY()) {
-				l.moveDown();
-				return true;
+			int buffer = 10;
+			while (buffer > 0 && moved == false) {
+				Point2D.Double below = new Point2D.Double(current.getX(), Math.min(BOARDSIZE, current.getY() + buffer));
+				Point2D.Double above = new Point2D.Double(current.getX(), Math.max(0, current.getY() - buffer));
+				Point2D.Double left = new Point2D.Double(Math.max(0,current.getX() - buffer), current.getY());
+				Point2D.Double right = new Point2D.Double(Math.min(BOARDSIZE,current.getX() + buffer), current.getY());
+				if (isObstructedExtended(above, dest) == false && ydiff > 0) {
+					l.moveUp();
+					nextDirection = Direction.UP;
+					moved = true;
+				}
+				else if (isObstructedExtended(below, dest) == false && ydiff < 0) {
+					l.moveDown();
+					nextDirection = Direction.DOWN;
+					moved = true;
+				}
+				else if (isObstructedExtended(left, dest) == false && xdiff > 0) {
+					l.moveLeft();
+					nextDirection = Direction.LEFT;
+					moved = true;
+				}
+				else if (isObstructedExtended(right, dest) == false && xdiff < 0) {
+					l.moveRight();
+					nextDirection = Direction.RIGHT;
+					moved = true;
+				}
+				
+				buffer --;
 			}
 		}
 		
+		if (!moved) {
+			if (Math.abs(xdiff) > Math.abs(ydiff)) {
+				if (current.getX() > dest.getX()) {
+					l.moveLeft();
+					nextDirection = Direction.LEFT;
+					moved = true;
+				}
+				else if (current.getX() < dest.getX()){
+					l.moveRight();
+					nextDirection = Direction.RIGHT;
+					moved = true;
+				}
+			}
+			else {
+				if (current.getY() > dest.getY()) {
+					l.moveUp();
+					nextDirection = Direction.UP;
+					moved = true;
+				}
+				else if (current.getY() < dest.getY()) {
+					l.moveDown();
+					nextDirection = Direction.DOWN;
+					moved = true;
+				}
+			}
+		}
+		
+		addNextDirection(l, nextDirection);
 		return moved;
 	}
 	
