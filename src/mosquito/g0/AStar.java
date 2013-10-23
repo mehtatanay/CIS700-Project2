@@ -2,7 +2,9 @@ package mosquito.g0;
 
 import java.awt.geom.Line2D;
 import java.awt.geom.Point2D;
+import java.awt.geom.Point2D.Double;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -14,12 +16,13 @@ import mosquito.sim.MoveableLight;
 public class AStar {
 	//obstacles in the board
 	private static Set<Line2D> walls;
+	private static HashMap<Point2D.Double, Integer> closeScore = new HashMap<Point2D.Double, Integer>();
 	private double minDistance;
 	
 	//constructor takes the obstacles
 	public AStar(Set<Line2D> w){
 		walls = w;
-		minDistance = Double.MAX_VALUE;
+		minDistance = (double)Integer.MAX_VALUE;
 		for (Line2D wall1 : walls) {
 			for (Line2D wall2 : walls) {
 				if (wall1.equals(wall2)) {
@@ -32,11 +35,11 @@ public class AStar {
 				Point2D p21 = wall2.getP1();
 				Point2D p22 = wall2.getP2();
 				
-				double distance11 = wall2.ptLineDist(p11) > 0 ? wall2.ptLineDist(p11) : Double.MAX_VALUE;
-				double distance12 = wall2.ptLineDist(p12) > 0 ? wall2.ptLineDist(p12): Double.MAX_VALUE ;
+				double distance11 = wall2.ptLineDist(p11) > 0 ? wall2.ptLineDist(p11) : (double)Integer.MAX_VALUE;
+				double distance12 = wall2.ptLineDist(p12) > 0 ? wall2.ptLineDist(p12): (double)Integer.MAX_VALUE;
 				
-				double distance21 = wall1.ptLineDist(p21) > 0 ? wall1.ptLineDist(p21) : Double.MAX_VALUE;
-				double distance22 = wall1.ptLineDist(p22) > 0 ?  wall1.ptLineDist(p22) : Double.MAX_VALUE;
+				double distance21 = wall1.ptLineDist(p21) > 0 ? wall1.ptLineDist(p21) : (double)Integer.MAX_VALUE;
+				double distance22 = wall1.ptLineDist(p22) > 0 ?  wall1.ptLineDist(p22) : (double)Integer.MAX_VALUE;
 				
 				double dist =  Math.min(Math.min(distance21, distance22), Math.min(distance12, distance11));
 				
@@ -48,11 +51,32 @@ public class AStar {
 	
 		minDistance = Math.max(4, minDistance);
 		minDistance = Math.min(10, minDistance);
+		
+		for (int i = 0; i < 101; i ++) {
+			for (int j = 0; j < 101; j ++) {
+				Point2D.Double nextPoint = new Point2D.Double(i, j);
+				int closescore = 0;
+				
+				for(Line2D wall:walls) {
+					if(wall.getP1().distance(nextPoint) < minDistance/2 - 0.5 || 
+					   wall.getP2().distance(nextPoint) < minDistance/2 - 0.5) {
+						closescore += 10000;
+					}
+					if(wall.getP1().distance(nextPoint) < 1 || wall.getP2().distance(nextPoint) < 1) {
+						closescore += 1000000;
+					}		
+				}
+				
+				if (closescore > 0) {
+					closeScore.put(nextPoint, new Integer(closescore));
+				}
+			}
+		}
 	}
 	
 	//A* search method for optimized path. Implemented from the Wikipedia page's pseudo code.
 	//returns an arraylist of points that the light should go for the optimal path
-	public ArrayList<Point2D.Double> getPath(MoveableLight ml, Point2D.Double destination, int[][] board) throws Exception{
+	public ArrayList<Point2D.Double> getPath(MoveableLight ml, Point2D.Double destination, int[][] board) throws Exception {
 		Point2D.Double start = new Point2D.Double(ml.getX(),ml.getY());
 		//visited is the set of nodes already evaluated
 		HashSet<Point2D.Double> visited = new HashSet<Point2D.Double>();
@@ -84,6 +108,8 @@ public class AStar {
 				return shortestPath;
 			}
 			
+	
+			
 			//remove current from openSet and add it to visited
 			openSet.remove(current);
 			visited.add(current);
@@ -93,28 +119,10 @@ public class AStar {
 			for (Point2D.Double neighbor : neighbors){
 				float tentative_g_score = g_score.get(current) + (float)distanceBetween(current, neighbor, board);
 				float tentative_f_score = tentative_g_score + (float)absoluteDistanceBetween(neighbor, destination);
-	
-				//HACK TO NOT GO AROUND CORNERS
-				for(Line2D w:walls) {
-					if(w.getP1().distance(neighbor) < minDistance/2 || w.getP2().distance(neighbor) < minDistance/2) {
-//						tentative_f_score += 10000;
-						tentative_f_score += 10000;
-//						break;
-					}
-					if(w.getP1().distance(neighbor) < 1 || w.getP2().distance(neighbor) < 1) {
-						tentative_f_score += 1000000;
-					}
-					
-					
-//					if (w.getP1().distance(neighbor) < 3 || w.getP2().distance(neighbor) < 3) {
-//						tentative_f_score += 100000;
-////						break;
-//					}
-//					
-//					if (w.getP1().distance(neighbor) < 1 || w.getP2().distance(neighbor) < 1) {
-//						tentative_f_score += 100000;
-////						break;
-//					}
+
+				// weight points close to wall
+				if (closeScore.containsKey(neighbor)) {
+					tentative_f_score += closeScore.get(neighbor);
 				}
 				
 				if(visited.contains(neighbor) && tentative_f_score > f_score.get(neighbor))
@@ -130,8 +138,13 @@ public class AStar {
 			}
 		}
 		//if you reach the end of the while loop, no path could be found. In our case, I throw a generic exception
-		throw new Exception();		
+		throw new Exception();
 	}
+	
+	/* 
+	 * returns all the points that are a distance 1 away and are also at least mindistance
+	 * away from walls
+	 */
 	
 	//returns all the points that are distance 1 away by square from the current point
 	private static HashSet<Point2D.Double> getNeighbors(Point2D.Double node){
@@ -178,21 +191,26 @@ public class AStar {
 	//reconstructs the path from the end node to the start node
 	private static ArrayList<Point2D.Double> reconstructPath(HashMap<Point2D.Double, Point2D.Double> cameFrom, Point2D.Double current){
 		ArrayList<Point2D.Double> path = new ArrayList<Point2D.Double>();
-		if(cameFrom.containsKey(current)){
-			path = reconstructPath(cameFrom, cameFrom.get(current));
-			path.add(current);
-			return path;
-		}			
-		else{
-			path = new ArrayList<Point2D.Double>();
-			path.add(current);
-			return path;	
+		Point2D curr = current;
+		path.add(current);
+		
+		while (cameFrom.containsKey(curr)) {
+			if (cameFrom.get(curr).equals(curr)) {
+				System.out.println("problem here");
+			}
+			
+			Point2D.Double next = cameFrom.get(curr);
+			path.add(0, next);
+			curr = next;
 		}
+		
+		return path;
 	}
-	
-	//our heuristic - straight line distance
+	//our heuristic - straight line distance--use square distance for optimization
 	private static double absoluteDistanceBetween(Point2D.Double start, Point2D.Double end){
 		return Math.sqrt(Math.pow(end.x - start.x, 2) + Math.pow(end.y - start.y, 2));
+		
+//		return (Math.pow(end.x - start.x, 2) + Math.pow(end.y - start.y, 2));
 	}
 	
 	//straight line distance modified to include mosquito density
@@ -213,7 +231,8 @@ public class AStar {
 //		}
 //		if(mosquitos == 0)
 //			mosquitos = 1;
-		return Math.sqrt(Math.pow(end.x - start.x, 2) + Math.pow(end.y - start.y, 2));
+	return Math.sqrt(Math.pow(end.x - start.x, 2) + Math.pow(end.y - start.y, 2));
+//		return Math.pow(end.x - start.x, 2) + Math.pow(end.y - start.y, 2);
 //				+ 100/mosquitos;
 	}
 	
