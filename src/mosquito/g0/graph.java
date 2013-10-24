@@ -204,6 +204,12 @@ public class graph {
 		return n;
 	}
 	
+	public ArrayList<Point2D.Double> getPath(Point2D.Double point) {
+		ArrayList<Point2D.Double> path = new ArrayList<Point2D.Double>();
+
+		return path;
+	}
+	
 	public ArrayList<Point2D.Double> get(Point2D.Double point){
 		ArrayList<Point2D.Double> neighbors = new ArrayList<Point2D.Double>();
 		if(g.containsKey(point))
