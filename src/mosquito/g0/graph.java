@@ -15,8 +15,9 @@ public class graph {
 	public HashMap<Point2D.Double,ArrayList<Point2D.Double>> g;
 	private int gridSize = 20;
 	private int numlights;
-	private double angleIncrement = Math.PI/64;
+	private double angleIncrement = Math.PI/32;
 	private Point2D.Double start;
+	private HashSet<Point2D.Double> discovered = new HashSet<Point2D.Double>();
 	
 	public graph(Set<Line2D> w, int numlights){
 		walls = w;
@@ -64,21 +65,43 @@ public class graph {
 	
 	public ArrayList<Point2D.Double> getPath(){
 		ArrayList<Point2D.Double> path = new ArrayList<Point2D.Double>();
-		ArrayList<Point2D.Double> Q = new ArrayList<Point2D.Double>();
-		HashSet<Point2D.Double> V = new HashSet<Point2D.Double>();
-		Q.add(start);
-		V.add(start);
-		while(Q.size()>0){
-			Point2D.Double t = Q.remove(0);
-			path.add(t);
-			for(Point2D.Double u : g.get(t)){
-				if(!V.contains(u)){
-					V.add(u);
-					Q.add(u);
-				}
+//		ArrayList<Point2D.Double> Q = new ArrayList<Point2D.Double>();
+//		HashSet<Point2D.Double> V = new HashSet<Point2D.Double>();
+//		Q.add(start);
+//		V.add(start);
+//		while(Q.size()>0){
+//			Point2D.Double t = Q.remove(0);
+//			path.add(t);
+//			for(Point2D.Double u : g.get(t)){
+//				if(!V.contains(u)){
+//					V.add(u);
+//					Q.add(u);
+//				}
+//			}
+//		}
+		dfs(start,path);
+		return path;
+	}
+	
+	private void dfs(Point2D.Double v,ArrayList<Point2D.Double>path){
+//		procedure DFS(G,v):
+//			2      label v as discovered
+//			3      for all edges e in G.adjacentEdges(v) do
+//			4          if edge e is unexplored then
+//			5              w = G.adjacentVertex(v,e)
+//			6              if vertex w is unexplored then
+//			7                  label e as a discovered edge
+//			8                  recursively call DFS(G,w)
+//			9              else
+//			10                 label e as a back edge
+//			11      label v as explored
+		discovered.add(v);
+		path.add(v);
+		for(Point2D.Double w : g.get(v)){
+			if(!discovered.contains(w)){
+				dfs(w,path);
 			}
 		}
-		return path;
 	}
 	
 	private void buildGraph(Point2D.Double start){
@@ -202,12 +225,6 @@ public class graph {
 				n.add(new Point2D.Double(start.x -1,start.y));
 		}
 		return n;
-	}
-	
-	public ArrayList<Point2D.Double> getPath(Point2D.Double point) {
-		ArrayList<Point2D.Double> path = new ArrayList<Point2D.Double>();
-
-		return path;
 	}
 	
 	public ArrayList<Point2D.Double> get(Point2D.Double point){
