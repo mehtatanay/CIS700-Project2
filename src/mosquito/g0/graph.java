@@ -15,33 +15,14 @@ public class graph {
 	public HashMap<Point2D.Double,ArrayList<Point2D.Double>> g;
 	private int gridSize = 20;
 	private int numlights;
-	private double angleIncrement = Math.PI/32;
+	private double angleIncrement = Math.PI/64;
+	private Point2D.Double start;
 	
 	public graph(Set<Line2D> w, int numlights){
 		walls = w;
 		this.numlights = numlights;
 		g = new HashMap<Point2D.Double,ArrayList<Point2D.Double>>();
-		Point2D start = new Point2D.Double(Math.floor(gridSize/2),Math.floor(gridSize/2));
-//		boolean start_free;
-//		for(int i=0;i<gridSize;i++){
-//			start_free = true;
-//			for(int j=0;j<gridSize;j++){
-//				start_free = true;
-//				start = new Point2D.Double(i,j);
-//				for(Line2D wall : walls){
-//					if(wall.contains(start)){
-//						start_free = false;
-//						break;
-//					}
-//				}
-//				if(start_free){
-//					break;
-//				}
-//			}
-//			if(start_free){
-//				break;
-//			}
-//		}
+		start = new Point2D.Double(Math.floor(gridSize/2),Math.floor(gridSize/2));
 		
 		this.buildGraph((Point2D.Double)start);
 		
@@ -79,6 +60,25 @@ public class graph {
 			}
 			g.put(key, neighbors);
 		}
+	}
+	
+	public ArrayList<Point2D.Double> getPath(){
+		ArrayList<Point2D.Double> path = new ArrayList<Point2D.Double>();
+		ArrayList<Point2D.Double> Q = new ArrayList<Point2D.Double>();
+		HashSet<Point2D.Double> V = new HashSet<Point2D.Double>();
+		Q.add(start);
+		V.add(start);
+		while(Q.size()>0){
+			Point2D.Double t = Q.remove(0);
+			path.add(t);
+			for(Point2D.Double u : g.get(t)){
+				if(!V.contains(u)){
+					V.add(u);
+					Q.add(u);
+				}
+			}
+		}
+		return path;
 	}
 	
 	private void buildGraph(Point2D.Double start){
@@ -162,7 +162,7 @@ public class graph {
 			boolean add = true;
 			Point2D.Double line_end = new Point2D.Double(start.x, start.y + 1);
 			for (Line2D obstacle : walls){
-				if(obstacle.intersectsLine(new Line2D.Double(start,line_end)))
+				if(obstacle.intersectsLine(new Line2D.Double(start,line_end)) || obstacle.ptLineDist(line_end)<=0.00)
 					add = false;
 			}
 			if(add)
@@ -173,7 +173,7 @@ public class graph {
 			boolean add = true;
 			Point2D.Double line_end = new Point2D.Double(start.x, start.y - 1);
 			for (Line2D obstacle : walls){
-				if(obstacle.intersectsLine(new Line2D.Double(start,line_end)))
+				if(obstacle.intersectsLine(new Line2D.Double(start,line_end)) || obstacle.ptLineDist(line_end)<=0.00)
 					add = false;
 			}
 			if(add)
@@ -184,7 +184,7 @@ public class graph {
 			boolean add = true;
 			Point2D.Double line_end = new Point2D.Double(start.x+1, start.y);
 			for (Line2D obstacle : walls){
-				if(obstacle.intersectsLine(new Line2D.Double(start,line_end)))
+				if(obstacle.intersectsLine(new Line2D.Double(start,line_end)) || obstacle.ptLineDist(line_end)<=0.00)
 					add = false;
 			}
 			if(add)
@@ -195,7 +195,7 @@ public class graph {
 			boolean add = true;
 			Point2D.Double line_end = new Point2D.Double(start.x - 1, start.y);
 			for (Line2D obstacle : walls){
-				if(obstacle.intersectsLine(new Line2D.Double(start,line_end)))
+				if(obstacle.intersectsLine(new Line2D.Double(start,line_end)) || obstacle.ptLineDist(line_end)<=0.00)
 					add = false;
 			}
 			if(add)
